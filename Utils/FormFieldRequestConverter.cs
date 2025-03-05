@@ -13,7 +13,7 @@ namespace ApiElecateProspectsForm.Utils
 
             if (!root.TryGetProperty("type", out JsonElement typeElement))
             {
-                throw new JsonException("El campo 'type' es obligatorio.");
+                throw new JsonException("The field 'type' is required");
             }
 
             string? type = typeElement.GetString();
@@ -21,7 +21,7 @@ namespace ApiElecateProspectsForm.Utils
             {
                 "Text" or "Number" or "Password" or "Email" => JsonSerializer.Deserialize<TextFieldRequestDTO>(root.GetRawText(), options),
                 "Select" or "Radio" or "Checkbox" => JsonSerializer.Deserialize<SelectFieldRequestDTO>(root.GetRawText(), options),
-                _ => throw new JsonException($"El tipo de campo '{type}' no es válido"),
+                _ => throw new JsonException($"Field type '{type}' is not valid"),
             };
         }
 
