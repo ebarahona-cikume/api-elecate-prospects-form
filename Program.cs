@@ -1,11 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using ApiElecateProspectsForm.Context;
 using ApiElecateProspectsForm.Repositories;
 using ApiElecateProspectsForm.Interfaces;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -25,7 +26,6 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 });
 
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -53,24 +53,7 @@ builder.Services.AddCors(options =>
         });
 });
 
-var app = builder.Build();
-
-// Middleware para manejo global de errores
-app.UseExceptionHandler(appBuilder =>
-{
-    appBuilder.Run(async context =>
-    {
-        context.Response.ContentType = "application/json";
-        var exceptionHandlerPathFeature = context.Features.Get<IExceptionHandlerPathFeature>();
-
-        if (exceptionHandlerPathFeature?.Error is JsonException jsonEx)
-        {
-            context.Response.StatusCode = StatusCodes.Status400BadRequest;
-            var errorResponse = new { message = "Error en el formato del JSON: " + jsonEx.Message };
-            await context.Response.WriteAsJsonAsync(errorResponse);
-        }
-    });
-});
+WebApplication app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
