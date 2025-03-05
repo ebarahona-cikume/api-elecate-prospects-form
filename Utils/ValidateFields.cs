@@ -1,29 +1,30 @@
 ﻿using ApiElecateProspectsForm.Controllers;
 using ApiElecateProspectsForm.DTOs;
 using Microsoft.AspNetCore.Mvc;
+using System.Linq;
 
 namespace ApiElecateProspectsForm.Utils
 {
-    public class ValidateFields
+    public static class ValidateFields
     {
-        //private static IActionResult ValidateFields(FormRequestDTO request)
-        //{
-        //    if (request.Fields == null)
-        //    {
-        //        return BadRequestResult("El campo 'fields' es obligatorio.");
-        //    }
+        public static IActionResult Validate(FormRequestDTO request)
+        {
+            if (request == null || request.Fields == null || request.Fields.Count == 0)
+            {
+                return new BadRequestObjectResult("Debe proporcionar al menos un campo.");
+            }
 
-        //    foreach (var property in from FormFieldRequestDTO field in request.Fields
-        //                             let properties = field.GetType().GetProperties()
-        //                             from System.Reflection.PropertyInfo property in properties
-        //                             let value = property.GetValue(field) as string
-        //                             where property.PropertyType == typeof(string) && string.IsNullOrEmpty(value) && property.Name != "Mask"
-        //                             select property)
-        //    {
-        //        return BadRequest($"El campo '{property.Name}' es obligatorio.");
-        //    }
+            foreach (var property in from FormFieldRequestDTO field in request.Fields ?? Enumerable.Empty<FormFieldRequestDTO>()
+                                     let properties = field.GetType().GetProperties()
+                                     from System.Reflection.PropertyInfo property in properties
+                                     let value = property.GetValue(field) as string
+                                     where property.PropertyType == typeof(string) && string.IsNullOrEmpty(value) && property.Name != "Mask"
+                                     select property)
+            {
+                return new BadRequestObjectResult($"El campo '{property.Name}' es obligatorio.");
+            }
 
-        //    return Ok();
-        //}
+            return new OkResult();
+        }
     }
 }

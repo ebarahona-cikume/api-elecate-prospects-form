@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using System.Text;
 using System.Text.Json.Serialization;
 using ApiElecateProspectsForm.Utils;
+using ApiElecateProspectsForm.Models;
+using Microsoft.Extensions.Configuration;
 
 namespace ApiElecateProspectsForm.Controllers
 {
@@ -17,40 +19,45 @@ namespace ApiElecateProspectsForm.Controllers
     [Route("elecate/prospects")]
     public class ProspectsFormController : ControllerBase
     {
-        [HttpPost("generate")]
-        public IActionResult GenerateHtmlForm([FromBody] FormRequestDTO request)
+        private readonly HttpClient _httpClient;
+        private readonly IConfiguration _configuration;
+
+        public ProspectsFormController(HttpClient httpClient, IConfiguration configuration)
         {
-            if (request == null || request.Fields == null || request.Fields.Count == 0)
+            _httpClient = httpClient;
+            _configuration = configuration;
+        }
+
+        [HttpPost("generate")]
+        public async Task<IActionResult> GenerateHtmlForm([FromBody] FormRequestDTO request)
+        {
+            IActionResult validationResult = ValidateFields.Validate(request);
+
+            if (validationResult is BadRequestObjectResult)
             {
-                return BadRequest("Debe proporcionar al menos un campo.");
+                return validationResult;
             }
-
-            //IActionResult validationResult = ValidateFields(request);
-
-            //if (validationResult is BadRequestObjectResult)
-            //{
-            //    return validationResult;
-            //}
 
             StringBuilder htmlBuilder = new();
             htmlBuilder.Append("<form>\n");
 
-            foreach (var field in request.Fields)
-            {
-                FieldType fieldType = field.Type switch
-                {
-                    "Text" => FieldType.Text,
-                    "Number" => FieldType.Number,
-                    "Password" => FieldType.Password,
-                    "Email" => FieldType.Email,
-                    "Select" => FieldType.Select,
-                    "Radio" => FieldType.Radio,
-                    "Checkbox" => FieldType.Checkbox,
-                    _ => FieldType.Text
-                };
+            var fields = request.Fields ?? Enumerable.Empty<FormFieldRequestDTO>();
 
+            foreach (var (field, fieldType) in from FormFieldRequestDTO field in fields
+                                               let fieldType = field.Type switch
+                                               {
+                                                   "Text" => FieldType.Text,
+                                                   "Number" => FieldType.Number,
+                                                   "Password" => FieldType.Password,
+                                                   "Email" => FieldType.Email,
+                                                   "Select" => FieldType.Select,
+                                                   "Radio" => FieldType.Radio,
+                                                   "Checkbox" => FieldType.Checkbox,
+                                                   _ => FieldType.Text
+                                               }
+                                               select (field, fieldType))
+            {
                 htmlBuilder.Append($"<label for=\"{field.Name}\">{field.Name}:</label>\n");
-                   
                 if (field is TextFieldRequestDTO textField)
                 {
                     string maxLength = textField.Size > 0 ? $"maxlength=\"{textField.Size}\"" : "";
@@ -62,7 +69,31 @@ namespace ApiElecateProspectsForm.Controllers
                 {
                     if (fieldType == FieldType.Select)
                     {
-                        // implementar logica del Select (Salvador)
+                        try
+                        {
+                            string? maritalStatusUrl = _configuration["ApiUrls:MaritalStatusUrl"];
+
+                            HttpResponseMessage response = await _httpClient.GetAsync(maritalStatusUrl);
+                            response.EnsureSuccessStatusCode();
+
+                            IEnumerable<MaritalStatusModel> maritalStatuses = await response.Content.ReadFromJsonAsync<IEnumerable<MaritalStatusModel>>() ?? 
+                                Enumerable.Empty<MaritalStatusModel>();
+
+                            htmlBuilder.Append($"<select id=\"{field.Name}\" name=\"{field.Name}\">\n");
+                            foreach (MaritalStatusModel status in maritalStatuses)
+                            {
+                                htmlBuilder.Append($"<option value=\"{status.Id}\">{status.MaritalStatus?.Trim()}</option>\n");
+                            }
+                            htmlBuilder.Append("</select>\n");
+                        }
+                        catch (HttpRequestException httpEx)
+                        {
+                            return StatusCode(500, $"Error fetching data: {httpEx.Message}");
+                        }
+                        catch (Exception ex)
+                        {
+                            return StatusCode(500, $"An unexpected error occurred: {ex.Message}");
+                        }
                     }
                     else if (fieldType == FieldType.Radio)
                     {

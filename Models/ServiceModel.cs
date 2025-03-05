@@ -1,6 +1,6 @@
-﻿namespace ApiElecateProspectsForm.DTOs
+﻿namespace ApiElecateProspectsForm.Models
 {
-    public class ServiceDTO
+    public class ServiceModel
     {
         public int Id { get; set; }
         public string? Service { get; set; }

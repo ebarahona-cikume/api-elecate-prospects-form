@@ -1,6 +1,6 @@
-﻿namespace ApiElecateProspectsForm.DTOs
+﻿namespace ApiElecateProspectsForm.Models
 {
-    public class MaritalStatusDTO
+    public class MaritalStatusModel
     {
         public int Id { get; set; }
         public string? MaritalStatus { get; set; }

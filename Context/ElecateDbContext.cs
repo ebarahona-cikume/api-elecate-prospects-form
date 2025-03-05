@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using ApiElecateProspectsForm.DTOs;
+using ApiElecateProspectsForm.Models;
 
 namespace ApiElecateProspectsForm.Context
 {
@@ -7,9 +7,9 @@ namespace ApiElecateProspectsForm.Context
     {
         public ElecateDbContext(DbContextOptions<ElecateDbContext> options) : base(options) { }
 
-        public DbSet<MaritalStatusDTO> MaritalStatus_Tbl { get; set; }
+        public DbSet<MaritalStatusModel> MaritalStatus_Tbl { get; set; }
 
-        public DbSet<ServiceDTO> Service_Tbl { get; set; }
+        public DbSet<ServiceModel> Service_Tbl { get; set; }
     }
 
 }
