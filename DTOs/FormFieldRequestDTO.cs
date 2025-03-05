@@ -18,13 +18,13 @@ namespace ApiElecateProspectsForm.DTOs
     public abstract class FormFieldRequestDTO
     {
         [JsonPropertyName("id")]
-        public required string Id { get; set; }
+        public string? Id { get; set; }
 
         [JsonPropertyName("name")]
-        public required string Name { get; set; }
+        public string? Name { get; set; }
 
         [JsonPropertyName("type")]
-        public required string Type { get; set; }
+        public string? Type { get; set; }
 
         [JsonPropertyName("link")]
         public int Link { get; set; }
