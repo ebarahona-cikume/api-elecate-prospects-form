@@ -32,8 +32,6 @@ namespace ApiElecateProspectsForm.Controllers
             //    return validationResult;
             //}
 
-            // validar que el campo "field.Type" sea igual a los valores de FieldType (Eddy)
-
             StringBuilder htmlBuilder = new();
             htmlBuilder.Append("<form>\n");
 
@@ -41,13 +39,13 @@ namespace ApiElecateProspectsForm.Controllers
             {
                 FieldType fieldType = field.Type switch
                 {
-                    "text" => FieldType.Text,
-                    "number" => FieldType.Number,
-                    "password" => FieldType.Password,
-                    "email" => FieldType.Email,
-                    "select" => FieldType.Select,
-                    "radio" => FieldType.Radio,
-                    "checkbox" => FieldType.Checkbox,
+                    "Text" => FieldType.Text,
+                    "Number" => FieldType.Number,
+                    "Password" => FieldType.Password,
+                    "Email" => FieldType.Email,
+                    "Select" => FieldType.Select,
+                    "Radio" => FieldType.Radio,
+                    "Checkbox" => FieldType.Checkbox,
                     _ => FieldType.Text
                 };
 
