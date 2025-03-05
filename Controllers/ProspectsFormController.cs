@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Text;
 using System.Text.Json.Serialization;
-using System.Linq;
+using ApiElecateProspectsForm.Utils;
 
 namespace ApiElecateProspectsForm.Controllers
 {
@@ -25,12 +25,12 @@ namespace ApiElecateProspectsForm.Controllers
                 return BadRequest("Debe proporcionar al menos un campo.");
             }
 
-            IActionResult validationResult = ValidateFields(request);
+            //IActionResult validationResult = ValidateFields(request);
 
-            if (validationResult is BadRequestObjectResult)
-            {
-                return validationResult;
-            }
+            //if (validationResult is BadRequestObjectResult)
+            //{
+            //    return validationResult;
+            //}
 
             // validar que el campo "field.Type" sea igual a los valores de FieldType (Eddy)
 
@@ -80,26 +80,6 @@ namespace ApiElecateProspectsForm.Controllers
             htmlBuilder.Append("</form>");
 
             return Ok(htmlBuilder.ToString());
-        }
-
-        private IActionResult ValidateFields(FormRequestDTO request)
-        {
-            if (request.Fields == null)
-            {
-                return BadRequest("El campo 'fields' es obligatorio.");
-            }
-
-            foreach (var property in from FormFieldRequestDTO field in request.Fields
-                                     let properties = field.GetType().GetProperties()
-                                     from System.Reflection.PropertyInfo property in properties
-                                     let value = property.GetValue(field) as string
-                                     where property.PropertyType == typeof(string) && string.IsNullOrEmpty(value) && property.Name != "Mask"
-                                     select property)
-            {
-                return BadRequest($"El campo '{property.Name}' es obligatorio.");
-            }
-
-            return Ok();
         }
     }
 }
