@@ -22,7 +22,14 @@ namespace ApiElecateProspectsForm.Controllers
         {
             if (request == null || request.Fields == null || request.Fields.Count == 0)
             {
-                return BadRequest("Debe proporcionar al menos un campo.");
+                ErrorResponseDTO errorResponse = new()
+                {
+                    Status = 400,
+                    Title = "Bad Request",
+                    Message = "You must provide at least one field"
+                };
+
+                return BadRequest(errorResponse);
             }
 
             IActionResult validationResult = ValidateFields(request);
