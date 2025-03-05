@@ -4,18 +4,13 @@ using ApiElecateProspectsForm.Models;
 
 namespace ApiElecateProspectsForm.Repositories
 {
-    public class ServiceRepository : IServiceReository
+    public class ServiceRepository(ElecateDbContext context) : IServiceReository
     {
-        private readonly ElecateDbContext _context;
-
-        public ServiceRepository(ElecateDbContext context)
-        {
-            _context = context;
-        }
+        private readonly ElecateDbContext _context = context;
 
         public IEnumerable<ServiceModel> GetAllServices()
         {
-            return _context.Service_Tbl.ToList();
+            return [.. _context.Service_Tbl];
         }
     }
 }

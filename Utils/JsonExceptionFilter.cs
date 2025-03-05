@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
+using System.Net;
 
 namespace ApiElecateProspectsForm.Utils
 {
@@ -15,7 +16,7 @@ namespace ApiElecateProspectsForm.Utils
                 // Personaliza la respuesta de error para deserialización
                 var errorResponse = new ErrorResponseDTO
                 {
-                    Status = 400,
+                    Status = HttpStatusCode.BadRequest,
                     Title = "Bad Request",
                     Message = "There was an error processing the request body."
                 };

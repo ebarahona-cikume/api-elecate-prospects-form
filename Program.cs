@@ -5,6 +5,8 @@ using System.Text.Json;
 using ApiElecateProspectsForm.Context;
 using ApiElecateProspectsForm.Repositories;
 using ApiElecateProspectsForm.Interfaces;
+using Microsoft.AspNetCore.Mvc;
+using System.Net;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -21,7 +23,7 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
             .Select(e => e.ErrorMessage)
             .ToList();
 
-        return new BadRequestObjectResult(new { Status = 400, Title = "Bad Request", Message = string.Join(" ", errors) });
+        return new BadRequestObjectResult(new { Status = HttpStatusCode.BadRequest, Title = "Bad Request", Message = string.Join(" ", errors) });
     };
 });
 
