@@ -28,7 +28,5 @@ namespace ApiElecateProspectsForm.DTOs
 
         [JsonPropertyName("link")]
         public int Link { get; set; }
-
     }
-
 }
