@@ -10,13 +10,6 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 
-// Register the Form Fields Factory
-builder.Services.AddSingleton<TextFieldGenerator>();
-builder.Services.AddSingleton<SelectFieldGenerator>();
-builder.Services.AddSingleton<RadioFieldGenerator>();
-builder.Services.AddSingleton<CheckboxFieldGenerator>();
-builder.Services.AddSingleton<FieldGeneratorFactory>();
-
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -29,6 +22,13 @@ builder.Services.AddDbContext<ElecateDbContext>(options =>
 // Register the repository
 builder.Services.AddScoped<IMaritalStatusRepository, MaritalStatusRepository>();
 builder.Services.AddScoped<IServiceReository, ServiceRepository>();
+
+// Register the Form Fields Factory
+builder.Services.AddSingleton<TextFieldGenerator>();
+builder.Services.AddSingleton<SelectFieldGenerator>();
+builder.Services.AddSingleton<CheckboxFieldGenerator>();
+builder.Services.AddScoped<RadioFieldGenerator>();
+builder.Services.AddScoped<FieldGeneratorFactory>();
 
 // Register HttpClient
 builder.Services.AddHttpClient();
