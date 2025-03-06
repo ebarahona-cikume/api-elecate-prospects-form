@@ -15,9 +15,12 @@ namespace ApiElecateProspectsForm.Utils
 
             foreach (JsonElement fieldElement in root.GetProperty("fields").EnumerateArray())
             {
-                request.OriginalJsonFields.Add(fieldElement.EnumerateObject().ToDictionary(p => p.Name, p => p.Value));
+                // Convert the JsonElement to a JSON string and add it using the AddOriginalJsonField method
+                string json = fieldElement.GetRawText();
+                request.AddOriginalJsonField(json);
 
-                FormFieldRequestDTO? field = JsonSerializer.Deserialize<FormFieldRequestDTO>(fieldElement.GetRawText(), options);
+                // Deserialize the field and add it to the list of fields
+                FormFieldRequestDTO? field = JsonSerializer.Deserialize<FormFieldRequestDTO>(json, options);
                 request.Fields.Add(field);
             }
 
@@ -29,5 +32,4 @@ namespace ApiElecateProspectsForm.Utils
             JsonSerializer.Serialize(writer, value, options);
         }
     }
-
 }

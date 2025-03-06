@@ -2,7 +2,7 @@
 
 namespace ApiElecateProspectsForm.Interfaces
 {
-    public interface IServiceReository
+    public interface IServiceRepository
     {
         IEnumerable<ServiceModel> GetAllServices();
     }

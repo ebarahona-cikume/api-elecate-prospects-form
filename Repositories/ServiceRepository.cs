@@ -4,7 +4,7 @@ using ApiElecateProspectsForm.Models;
 
 namespace ApiElecateProspectsForm.Repositories
 {
-    public class ServiceRepository(ElecateDbContext context) : IServiceReository
+    public class ServiceRepository(ElecateDbContext context) : IServiceRepository
     {
         private readonly ElecateDbContext _context = context;
 

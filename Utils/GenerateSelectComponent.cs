@@ -1,11 +1,8 @@
 ﻿using ApiElecateProspectsForm.DTOs;
 using ApiElecateProspectsForm.Interfaces;
 using ApiElecateProspectsForm.Models;
-using Microsoft.AspNetCore.Mvc;
 using System.Net;
-using System.Net.Http;
 using System.Text;
-using static System.Net.WebRequestMethods;
 
 namespace ApiElecateProspectsForm.Utils
 {
@@ -41,7 +38,7 @@ namespace ApiElecateProspectsForm.Utils
             }
             catch (HttpRequestException httpEx)
             {
-                ErrorResponseDTO errorResponse = new()
+                StringErrorMessageResponseDTO errorResponse = new()
                 {
                     Status = HttpStatusCode.InternalServerError,
                     Title = "Bad Request",
@@ -50,7 +47,7 @@ namespace ApiElecateProspectsForm.Utils
             }
             catch (Exception ex)
             {
-                ErrorResponseDTO errorResponse = new()
+                StringErrorMessageResponseDTO errorResponse = new()
                 {
                     Status = HttpStatusCode.InternalServerError,
                     Title = "Bad Request",

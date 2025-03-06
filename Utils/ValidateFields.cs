@@ -1,16 +1,29 @@
 ﻿using ApiElecateProspectsForm.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
+using System.Text.Json;
+using System.Reflection;
+using System.Xml.Linq;
 
 namespace ApiElecateProspectsForm.Utils
 {
     public static class ValidateFields
     {
+        private static readonly IConfiguration _configuration;
+
+        static ValidateFields()
+        {
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+            _configuration = builder.Build();
+        }
+
         public static IActionResult Validate(GenerateFormRequestDTO request)
         {
             if (request == null || request.Fields == null || request.Fields.Count == 0)
             {
-                ErrorResponseDTO errorResponse = new()
+                StringErrorMessageResponseDTO errorResponse = new()
                 {
                     Status = HttpStatusCode.BadRequest,
                     Title = "Bad Request",
@@ -20,49 +33,87 @@ namespace ApiElecateProspectsForm.Utils
                 return new BadRequestObjectResult(errorResponse);
             }
 
-            var errors = new List<string>();
+            List<FieldErrorDTO> errors = [];
+
+            PropertyInfo[] fieldProperties = [.. typeof(FormFieldRequestDTO).Assembly.GetTypes()
+                .Where(t => t.IsSubclassOf(typeof(FormFieldRequestDTO)) || t == typeof(FormFieldRequestDTO))
+                .SelectMany(t => t.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+                .GroupBy(p => p.Name.ToLower())
+                .Select(g => g.First())];
+
+            List<string>? omittedFieldElements = _configuration.GetSection("OmittedFieldElements").Get<List<string>>() ?? [];
+            List<string>? requiredFieldElements = _configuration.GetSection("RequiredFieldElements").Get<List<string>>() ?? [];
 
             for (int i = 0; i < request.Fields.Count; i++)
             {
-                var originalJson = request.OriginalJsonFields[i];
+                List<string> fieldErrors = [];
+                FormFieldRequestDTO? field = request.Fields[i];
 
-                if (request.Fields[i] == null)
+                if (field == null && request.OriginalJsonFields != null && request.OriginalJsonFields.Count > i )
                 {
-                    if (!originalJson.ContainsKey("type"))
+                    Dictionary<string, JsonElement> dictionaryOriginalJsonFields = request.OriginalJsonFields[i];
+
+                    foreach (PropertyInfo fieldProperty in fieldProperties)
                     {
-                        errors.Add($"Invalid field at index {i}: 'type' is missing.");
+                        string normalizedPropertyName = fieldProperty.Name.ToLower();
+
+                        if (!dictionaryOriginalJsonFields.ContainsKey(normalizedPropertyName)  && !omittedFieldElements.Contains(fieldProperty.Name))
+                        {
+                            fieldErrors.Add($"The field '{fieldProperty.Name}' is required");
+                        }
+                        else if (dictionaryOriginalJsonFields.TryGetValue(normalizedPropertyName, out JsonElement value))
+                        {
+                            if (value.ValueKind == JsonValueKind.Null || 
+                                (value.ValueKind == JsonValueKind.String && 
+                                string.IsNullOrEmpty(value.GetString()) &&
+                                !omittedFieldElements.Contains(fieldProperty.Name)))
+                            {
+                                fieldErrors.Add($"The field '{fieldProperty.Name}' cannot be empty");
+                            }
+                        }
                     }
-                    else
+                }
+                else if (field != null)
+                {
+                    PropertyInfo[] properties = field.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
+
+                    for (int j = 0; j < properties.Length; j++)
                     {
-                        errors.Add($"Invalid field at index {i}: 'type' value is invalid.");
+                        PropertyInfo property = properties[j];
+                        object? value = property.GetValue(field);
+
+                        if (value == null && (field.Type != null && 
+                            field.Type.Equals("Select") ? requiredFieldElements.Contains(property.Name) : !omittedFieldElements.Contains(property.Name)))
+                        {
+                            fieldErrors.Add($"The field '{property.Name}' is required");
+                        }
+                        else if (value is string stringValue && string.IsNullOrEmpty(stringValue) && 
+                            (field.Type != null && 
+                            field.Type.Equals("Select") ? requiredFieldElements.Contains(property.Name) : !omittedFieldElements.Contains(property.Name)))
+                        {
+                            fieldErrors.Add($"The field '{property.Name}' cannot be empty");
+                        }
+                  
                     }
+                }
+
+                if (fieldErrors.Count > 0)
+                {
+                    errors.Add(new FieldErrorDTO
+                    {
+                        Index = i,
+                        FieldErrors = fieldErrors
+                    });
                 }
             }
 
             if (errors.Count > 0)
             {
-                ErrorResponseDTO errorResponse = new()
+                ArrayErrorMessageResponseDTO errorResponse = new()
                 {
                     Status = HttpStatusCode.BadRequest,
                     Title = "Bad Request",
-                    Message = string.Join(" ", errors)
-                };
-
-                return new BadRequestObjectResult(errorResponse);
-            }
-
-            foreach (var property in from FormFieldRequestDTO field in request.Fields
-                                     let properties = field.GetType().GetProperties()
-                                     from System.Reflection.PropertyInfo property in properties
-                                     let value = property.GetValue(field) as string
-                                     where property.PropertyType == typeof(string) && string.IsNullOrEmpty(value) && property.Name != "Mask"
-                                     select property)
-            {
-                ErrorResponseDTO errorResponse = new()
-                {
-                    Status = HttpStatusCode.BadRequest,
-                    Title = "Bad Request",
-                    Message = $"The field '{property.Name}' is required"
+                    Errors = errors
                 };
 
                 return new BadRequestObjectResult(errorResponse);

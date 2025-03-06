@@ -15,7 +15,7 @@ namespace ApiElecateProspectsForm.Repositories
 
         public IEnumerable<MaritalStatusModel> GetAllMaritalStatuses()
         {
-            return _context.MaritalStatus_Tbl.ToList();
+            return [.. _context.MaritalStatus_Tbl];
         }
     }
 }

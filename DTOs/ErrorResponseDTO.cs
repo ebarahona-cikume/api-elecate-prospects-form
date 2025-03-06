@@ -1,11 +1,14 @@
 ﻿using System.Net;
+using System.Text.Json.Serialization;
 
 namespace ApiElecateProspectsForm.DTOs
 {
-    public class ErrorResponseDTO
+    public abstract class ErrorResponseDTO
     {
+        [JsonPropertyOrder(1)]
         public HttpStatusCode Status { get; set; }
+
+        [JsonPropertyOrder(2)]
         public required string Title { get; set; }
-        public required string Message { get; set; }
     }
 }
