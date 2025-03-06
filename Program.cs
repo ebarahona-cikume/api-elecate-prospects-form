@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using ApiElecateProspectsForm.Context;
 using ApiElecateProspectsForm.Repositories;
 using ApiElecateProspectsForm.Interfaces;
+using ApiElecateProspectsForm.Services.FormFieldsGenerators;
+using ApiElecateProspectsForm.Services.FormComponentsGenerators;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +20,13 @@ builder.Services.AddDbContext<ElecateDbContext>(options =>
 // Register the repository
 builder.Services.AddScoped<IMaritalStatusRepository, MaritalStatusRepository>();
 builder.Services.AddScoped<IServiceRepository, ServiceRepository>();
+
+// Register the Form Fields Factory
+builder.Services.AddSingleton<TextFieldGenerator>();
+builder.Services.AddSingleton<SelectFieldGenerator>();
+builder.Services.AddSingleton<CheckboxFieldGenerator>();
+builder.Services.AddScoped<RadioFieldGenerator>();
+builder.Services.AddScoped<FieldGeneratorFactory>();
 
 // Register HttpClient
 builder.Services.AddHttpClient();

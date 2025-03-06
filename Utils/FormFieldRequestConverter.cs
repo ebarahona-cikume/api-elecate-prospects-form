@@ -20,7 +20,7 @@ namespace ApiElecateProspectsForm.Utils
             return type switch
             {
                 "Text" or "Number" or "Password" or "Email" => JsonSerializer.Deserialize<TextFieldRequestDTO>(root.GetRawText(), options),
-                "Select" or "Radio" or "Checkbox" => JsonSerializer.Deserialize<SelectFieldRequestDTO>(root.GetRawText(), options),
+                "Select" or "Checkbox" or "Radio" => JsonSerializer.Deserialize<SelectFieldRequestDTO>(root.GetRawText(), options),
                 _ => null,
             };
         }
