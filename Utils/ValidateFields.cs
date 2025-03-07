@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using System.Text.Json;
 using System.Reflection;
-using System.Xml.Linq;
 
 namespace ApiElecateProspectsForm.Utils
 {
@@ -13,7 +12,7 @@ namespace ApiElecateProspectsForm.Utils
 
         static ValidateFields()
         {
-            var builder = new ConfigurationBuilder()
+            IConfigurationBuilder builder = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
             _configuration = builder.Build();
@@ -33,23 +32,24 @@ namespace ApiElecateProspectsForm.Utils
                 return new BadRequestObjectResult(errorResponse);
             }
 
-            List<FieldErrorDTO> errors = [];
+            List<FieldErrorDTO> errors = new();
 
-            PropertyInfo[] fieldProperties = [.. typeof(FieldGenerateFormRequestDTO).Assembly.GetTypes()
+            PropertyInfo[] fieldProperties = typeof(FieldGenerateFormRequestDTO).Assembly.GetTypes()
                 .Where(t => t.IsSubclassOf(typeof(FieldGenerateFormRequestDTO)) || t == typeof(FieldGenerateFormRequestDTO))
                 .SelectMany(t => t.GetProperties(BindingFlags.Public | BindingFlags.Instance))
                 .GroupBy(p => p.Name.ToLower())
-                .Select(g => g.First())];
+                .Select(g => g.First())
+                .ToArray();
 
-            List<string>? omittedFieldElements = _configuration.GetSection("OmittedFieldElements").Get<List<string>>() ?? [];
-            List<string>? requiredFieldElements = _configuration.GetSection("RequiredFieldElements").Get<List<string>>() ?? [];
+            List<string>? omittedFieldElements = _configuration.GetSection("OmittedFieldElements").Get<List<string>>() ?? new();
+            List<string>? requiredFieldElements = _configuration.GetSection("RequiredFieldElements").Get<List<string>>() ?? new();
 
             for (int i = 0; i < request.Fields.Count; i++)
             {
-                List<string> fieldErrors = [];
+                List<string> fieldErrors = new();
                 FieldGenerateFormRequestDTO? field = request.Fields[i];
 
-                if (field == null && request.OriginalJsonFields != null && request.OriginalJsonFields.Count > i )
+                if (field == null && request.OriginalJsonFields != null && request.OriginalJsonFields.Count > i)
                 {
                     Dictionary<string, JsonElement> dictionaryOriginalJsonFields = request.OriginalJsonFields[i];
 
@@ -57,14 +57,14 @@ namespace ApiElecateProspectsForm.Utils
                     {
                         string normalizedPropertyName = fieldProperty.Name.ToLower();
 
-                        if (!dictionaryOriginalJsonFields.ContainsKey(normalizedPropertyName)  && !omittedFieldElements.Contains(fieldProperty.Name))
+                        if (!dictionaryOriginalJsonFields.ContainsKey(normalizedPropertyName) && !omittedFieldElements.Contains(fieldProperty.Name))
                         {
                             fieldErrors.Add($"The field '{fieldProperty.Name}' is required");
                         }
                         else if (dictionaryOriginalJsonFields.TryGetValue(normalizedPropertyName, out JsonElement value))
                         {
-                            if (value.ValueKind == JsonValueKind.Null || 
-                                (value.ValueKind == JsonValueKind.String && 
+                            if (value.ValueKind == JsonValueKind.Null ||
+                                (value.ValueKind == JsonValueKind.String &&
                                 string.IsNullOrEmpty(value.GetString()) &&
                                 !omittedFieldElements.Contains(fieldProperty.Name)))
                             {
@@ -82,18 +82,18 @@ namespace ApiElecateProspectsForm.Utils
                         PropertyInfo property = properties[j];
                         object? value = property.GetValue(field);
 
-                        if (value == null && (field.Type != null && 
+                        if (value == null && (field.Type != null &&
                             field.Type.Equals("Select") ? requiredFieldElements.Contains(property.Name) : !omittedFieldElements.Contains(property.Name)))
                         {
                             fieldErrors.Add($"The field '{property.Name}' is required");
                         }
-                        else if (value is string stringValue && string.IsNullOrEmpty(stringValue) && 
-                            (field.Type != null && 
+                        else if (value is string stringValue && string.IsNullOrEmpty(stringValue) &&
+                            (field.Type != null &&
                             field.Type.Equals("Select") ? requiredFieldElements.Contains(property.Name) : !omittedFieldElements.Contains(property.Name)))
                         {
                             fieldErrors.Add($"The field '{property.Name}' cannot be empty");
                         }
-                  
+
                     }
                 }
 

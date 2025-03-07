@@ -53,10 +53,16 @@ namespace ApiElecateProspectsForm.Controllers
         public async Task<IActionResult> SaveData([FromBody] SaveFormDataRequestDTO request, int id)
         {
             IQueryable<FormFieldsModel> formFields = _formFieldsRepository.GetFieldsByFormId(id);
-            var formFieldsList = await formFields.ToListAsync();
+            List<FormFieldsModel> formFieldsList = await formFields.ToListAsync();
+
+            IActionResult validationResult = ValidateFormFields.ValidateFormFilds(formFields);
+
+            if (validationResult is BadRequestObjectResult)
+            {
+                return validationResult;
+            }
+
             return Ok(formFieldsList);
         }
     }
-
-
 }
