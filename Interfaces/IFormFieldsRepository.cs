@@ -6,6 +6,6 @@ namespace ApiElecateProspectsForm.Interfaces
     {
         IQueryable<FormFieldsModel> GetFieldsByFormId(int Id);
 
-        Task AddFieldsAsync(IEnumerable<FormFieldsModel> fields);
+        Task ReplaceFieldsAsync(int idForm, IEnumerable<FormFieldsModel> newFields);
     }
 }

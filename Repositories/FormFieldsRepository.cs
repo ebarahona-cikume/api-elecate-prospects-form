@@ -13,24 +13,37 @@ namespace ApiElecateProspectsForm.Repositories
             return _context.FormFields_Tbl.Where(f => f.IdForm == Id);
         }
 
-        public async Task AddFieldsAsync(IEnumerable<FormFieldsModel> fields)
+        public async Task ReplaceFieldsAsync(int idForm, IEnumerable<FormFieldsModel> newFields)
         {
-            if (fields == null || !fields.Any())
-                throw new ArgumentException("The fields list cannot be empty", nameof(fields));
+            if (newFields == null || !newFields.Any())
+                throw new ArgumentException("The fields list cannot be empty", nameof(newFields));
 
-            try
+            var strategy = _context.Database.CreateExecutionStrategy();
+
+            await strategy.ExecuteAsync(async () =>
             {
-                await _context.FormFields_Tbl.AddRangeAsync(fields);
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateException ex)
-            {
-                throw new Exception("Error inserting fields into the database", ex);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("An unexpected error occurred while saving fields", ex);
-            }
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    // Delete the existing fields
+                    var existingFields = _context.FormFields_Tbl.Where(f => f.IdForm == idForm);
+                    _context.FormFields_Tbl.RemoveRange(existingFields);
+                    await _context.SaveChangesAsync();
+
+                    // Insert the new fields
+                    await _context.FormFields_Tbl.AddRangeAsync(newFields);
+                    await _context.SaveChangesAsync();
+
+                    // Confirm transaction
+                    await transaction.CommitAsync();
+                }
+                catch (Exception ex)
+                {
+                    // Revert changes in case of error
+                    await transaction.RollbackAsync();
+                    throw new Exception("An unexpected error occurred while replacing the form fields", ex);
+                }
+            });
         }
     }
 }

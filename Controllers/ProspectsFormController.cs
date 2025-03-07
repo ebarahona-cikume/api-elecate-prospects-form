@@ -68,7 +68,7 @@ namespace ApiElecateProspectsForm.Controllers
             {
                 try
                 {
-                    await formFieldsRepository.AddFieldsAsync(fieldsToInsert);
+                    await formFieldsRepository.ReplaceFieldsAsync(id, fieldsToInsert);
                 }
                 catch (Exception ex)
                 {
