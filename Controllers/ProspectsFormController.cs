@@ -81,7 +81,7 @@ namespace ApiElecateProspectsForm.Controllers
         [HttpPost("saveData/{id}")]
         public async Task<IActionResult> SaveData([FromBody] SaveFormDataRequestDTO request, int id)
         {
-            IQueryable<FormFieldsModel> formFields = _formFieldsRepository.GetFieldsByFormId(id);
+            IQueryable<FormFieldsModel> formFields = formFieldsRepository.GetFieldsByFormId(id);
             List<FormFieldsModel> formFieldsList = await formFields.ToListAsync();
 
             IActionResult validationResult = ValidateFormFields.ValidateFormFilds(formFields);

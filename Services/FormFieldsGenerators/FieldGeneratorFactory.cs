@@ -13,19 +13,16 @@ namespace ApiElecateProspectsForm.Services.FormFieldsGenerators
             _serviceProvider = serviceProvider;
         }
 
-        public IFormFieldGenerator GetGenerator(FieldType fieldType)
+        public IFormFieldGenerator GetGenerator(FieldType fieldType) => fieldType switch
         {
-            return fieldType switch
-            {
-                FieldType.Text => _serviceProvider.GetRequiredService<TextFieldGenerator>(),
-                FieldType.Number => _serviceProvider.GetRequiredService<TextFieldGenerator>(),
-                FieldType.Password => _serviceProvider.GetRequiredService<TextFieldGenerator>(),
-                FieldType.Email => _serviceProvider.GetRequiredService<TextFieldGenerator>(),
-                FieldType.Select => _serviceProvider.GetRequiredService<SelectFieldGenerator>(),
-                FieldType.Radio => _serviceProvider.GetRequiredService<RadioFieldGenerator>(),
-                FieldType.Checkbox => _serviceProvider.GetRequiredService<CheckboxFieldGenerator>(),
-                _ => throw new NotImplementedException($"No generator found for {fieldType}")
-            };
-        }
+            FieldType.Text => _serviceProvider.GetRequiredService<TextFieldGenerator>(),
+            FieldType.Number => _serviceProvider.GetRequiredService<TextFieldGenerator>(),
+            FieldType.Password => _serviceProvider.GetRequiredService<TextFieldGenerator>(),
+            FieldType.Email => _serviceProvider.GetRequiredService<TextFieldGenerator>(),
+            FieldType.Select => _serviceProvider.GetRequiredService<SelectFieldGenerator>(),
+            FieldType.Radio => _serviceProvider.GetRequiredService<RadioFieldGenerator>(),
+            FieldType.Checkbox => _serviceProvider.GetRequiredService<CheckboxFieldGenerator>(),
+            _ => throw new NotImplementedException($"No generator found for {fieldType}")
+        };
     }
 }
