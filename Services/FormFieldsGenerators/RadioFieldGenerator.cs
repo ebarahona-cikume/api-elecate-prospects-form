@@ -13,7 +13,9 @@ namespace ApiElecateProspectsForm.Services.FormFieldsGenerators
         public async Task<string> GenerateComponent(FieldGenerateFormRequestDTO field)
         {
             if (field is not SelectFieldRequestDTO radioField)
+            {
                 throw new ArgumentException("Invalid field type");
+            }
 
             string? maritalStatusUrl = _configuration["ApiUrls:MaritalStatusUrl"];
 
@@ -27,9 +29,10 @@ namespace ApiElecateProspectsForm.Services.FormFieldsGenerators
 
             IEnumerable<MaritalStatusModel> maritalStatuses = await response.Content.ReadFromJsonAsync<IEnumerable<MaritalStatusModel>>() ?? [];
 
-            // Construcción del HTML
-            var htmlBuilder = new StringBuilder();
-            foreach (var option in maritalStatuses)
+            // HTML Construction
+            StringBuilder htmlBuilder = new StringBuilder();
+
+            foreach (MaritalStatusModel option in maritalStatuses)
             {
                 htmlBuilder.Append($"<input type=\"radio\" id=\"{option.Id}\" name=\"{field.Name}\" value=\"{option.Id}\">\n");
                 htmlBuilder.Append($"<label for=\"{option.Id}\">{option.MaritalStatus?.Trim()}</label>\n");
