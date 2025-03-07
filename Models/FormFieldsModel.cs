@@ -17,5 +17,6 @@
         public int Link { get; set; }
 
         public string? Relation { get; set; }
+        public bool IsDeleted { get; set; }
     }
 }
