@@ -10,6 +10,8 @@ namespace ApiElecateProspectsForm.Context
         public DbSet<MaritalStatusModel> MaritalStatus_Tbl { get; set; }
 
         public DbSet<ServiceModel> Service_Tbl { get; set; }
+
+        public DbSet<FormFieldsModel> FormFields_Tbl { get; set; }
     }
 
 }

@@ -5,10 +5,12 @@ namespace ApiElecateProspectsForm.Services.FormFieldsGenerators
 {
     public class TextFieldGenerator : IFormFieldGenerator
     {
-        public Task<string> GenerateComponent(FormFieldRequestDTO field)
+        public Task<string> GenerateComponent(FieldGenerateFormRequestDTO field)
         {
             if (field is not TextFieldRequestDTO textField)
+            {
                 throw new ArgumentException("Invalid field type");
+            }
 
             string maxLength = textField.Size > 0 ? $"maxlength=\"{textField.Size}\"" : "";
             string mask = !string.IsNullOrEmpty(textField.Mask) ? $"mask=\"{textField.Mask}\"" : "";

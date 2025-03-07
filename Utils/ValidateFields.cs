@@ -35,8 +35,8 @@ namespace ApiElecateProspectsForm.Utils
 
             List<FieldErrorDTO> errors = [];
 
-            PropertyInfo[] fieldProperties = [.. typeof(FormFieldRequestDTO).Assembly.GetTypes()
-                .Where(t => t.IsSubclassOf(typeof(FormFieldRequestDTO)) || t == typeof(FormFieldRequestDTO))
+            PropertyInfo[] fieldProperties = [.. typeof(FieldGenerateFormRequestDTO).Assembly.GetTypes()
+                .Where(t => t.IsSubclassOf(typeof(FieldGenerateFormRequestDTO)) || t == typeof(FieldGenerateFormRequestDTO))
                 .SelectMany(t => t.GetProperties(BindingFlags.Public | BindingFlags.Instance))
                 .GroupBy(p => p.Name.ToLower())
                 .Select(g => g.First())];
@@ -47,7 +47,7 @@ namespace ApiElecateProspectsForm.Utils
             for (int i = 0; i < request.Fields.Count; i++)
             {
                 List<string> fieldErrors = [];
-                FormFieldRequestDTO? field = request.Fields[i];
+                FieldGenerateFormRequestDTO? field = request.Fields[i];
 
                 if (field == null && request.OriginalJsonFields != null && request.OriginalJsonFields.Count > i )
                 {

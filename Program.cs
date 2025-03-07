@@ -20,6 +20,7 @@ builder.Services.AddDbContext<ElecateDbContext>(options =>
 // Register the repository
 builder.Services.AddScoped<IMaritalStatusRepository, MaritalStatusRepository>();
 builder.Services.AddScoped<IServiceRepository, ServiceRepository>();
+builder.Services.AddScoped<IFormFieldsRepository, FormFieldsRepository>();
 
 // Register the Form Fields Factory
 builder.Services.AddSingleton<TextFieldGenerator>();

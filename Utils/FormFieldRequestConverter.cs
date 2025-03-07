@@ -4,9 +4,9 @@ using System.Text.Json;
 
 namespace ApiElecateProspectsForm.Utils
 {
-    public class FormFieldRequestConverter : JsonConverter<FormFieldRequestDTO>
+    public class FormFieldRequestConverter : JsonConverter<FieldGenerateFormRequestDTO>
     {
-        public override FormFieldRequestDTO? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        public override FieldGenerateFormRequestDTO? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
             using JsonDocument doc = JsonDocument.ParseValue(ref reader);
             JsonElement root = doc.RootElement;
@@ -25,7 +25,7 @@ namespace ApiElecateProspectsForm.Utils
             };
         }
 
-        public override void Write(Utf8JsonWriter writer, FormFieldRequestDTO value, JsonSerializerOptions options)
+        public override void Write(Utf8JsonWriter writer, FieldGenerateFormRequestDTO value, JsonSerializerOptions options)
         {
             JsonSerializer.Serialize(writer, (object)value, value.GetType(), options);
         }

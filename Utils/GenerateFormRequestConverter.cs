@@ -20,7 +20,7 @@ namespace ApiElecateProspectsForm.Utils
                 request.AddOriginalJsonField(json);
 
                 // Deserialize the field and add it to the list of fields
-                FormFieldRequestDTO? field = JsonSerializer.Deserialize<FormFieldRequestDTO>(json, options);
+                FieldGenerateFormRequestDTO? field = JsonSerializer.Deserialize<FieldGenerateFormRequestDTO>(json, options);
                 request.Fields.Add(field);
             }
 

@@ -2,7 +2,7 @@
 
 namespace ApiElecateProspectsForm.DTOs
 {
-    public class SelectFieldRequestDTO : FormFieldRequestDTO
+    public class SelectFieldRequestDTO : FieldGenerateFormRequestDTO
     {
         [JsonPropertyName("relation")]
         public string? Relation { get; set; }

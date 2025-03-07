@@ -5,21 +5,17 @@ using System.Text;
 
 namespace ApiElecateProspectsForm.Services.FormComponentsGenerators
 {
-    public class SelectFieldGenerator : IFormFieldGenerator
+    public class SelectFieldGenerator(HttpClient httpClient, IConfiguration configuration) : IFormFieldGenerator
     {
-        private readonly HttpClient _httpClient;
-        private readonly IConfiguration _configuration;
+        private readonly HttpClient _httpClient = httpClient;
+        private readonly IConfiguration _configuration = configuration;
 
-        public SelectFieldGenerator(HttpClient httpClient, IConfiguration configuration)
-        {
-            _httpClient = httpClient;
-            _configuration = configuration;
-        }
-
-        public async Task<string> GenerateComponent(FormFieldRequestDTO field)
+        public async Task<string> GenerateComponent(FieldGenerateFormRequestDTO field)
         {
             if (field is not SelectFieldRequestDTO)
+            {
                 throw new ArgumentException("Invalid field type");
+            }
 
             string? maritalStatusUrl = _configuration["ApiUrls:MaritalStatusUrl"];
             
@@ -33,11 +29,13 @@ namespace ApiElecateProspectsForm.Services.FormComponentsGenerators
 
             IEnumerable<MaritalStatusModel> maritalStatuses = await response.Content.ReadFromJsonAsync<IEnumerable<MaritalStatusModel>>() ?? [];
 
-            var htmlBuilder = new StringBuilder($"<select id=\"{field.Name}\" name=\"{field.Name}\">\n");
+            StringBuilder htmlBuilder = new StringBuilder($"<select id=\"{field.Name}\" name=\"{field.Name}\">\n");
+
             foreach (var status in maritalStatuses)
             {
                 htmlBuilder.Append($"<option value=\"{status.Id}\">{status.MaritalStatus?.Trim()}</option>\n");
             }
+
             htmlBuilder.Append("</select>\n");
 
             return htmlBuilder.ToString();

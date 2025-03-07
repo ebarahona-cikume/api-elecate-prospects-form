@@ -5,18 +5,12 @@ using System.Text;
 
 namespace ApiElecateProspectsForm.Services.FormFieldsGenerators
 {
-    public class RadioFieldGenerator : IFormFieldGenerator
+    public class RadioFieldGenerator(HttpClient httpClient, IConfiguration configuration) : IFormFieldGenerator
     {
-        private readonly HttpClient _httpClient;
-        private readonly IConfiguration _configuration;
+        private readonly HttpClient _httpClient = httpClient;
+        private readonly IConfiguration _configuration = configuration;
 
-        public RadioFieldGenerator(HttpClient httpClient, IConfiguration configuration)
-        {
-            _httpClient = httpClient;
-            _configuration = configuration;
-        }
-
-        public async Task<string> GenerateComponent(FormFieldRequestDTO field)
+        public async Task<string> GenerateComponent(FieldGenerateFormRequestDTO field)
         {
             if (field is not SelectFieldRequestDTO radioField)
                 throw new ArgumentException("Invalid field type");

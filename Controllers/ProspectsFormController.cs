@@ -3,14 +3,19 @@ using Microsoft.AspNetCore.Mvc;
 using System.Text;
 using ApiElecateProspectsForm.Utils;
 using ApiElecateProspectsForm.Services.FormFieldsGenerators;
+using ApiElecateProspectsForm.Models;
+using ApiElecateProspectsForm.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace ApiElecateProspectsForm.Controllers
 {
 
     [ApiController]
     [Route("elecate/prospects")]
-    public class ProspectsFormController : ControllerBase
+    public class ProspectsFormController(IFormFieldsRepository formFieldsRepository) : ControllerBase
     {
+        private IFormFieldsRepository _formFieldsRepository = formFieldsRepository;
+
         [HttpPost("generate")]
         public async Task<IActionResult> GenerateHtmlForm([FromBody] GenerateFormRequestDTO request, [FromServices] FieldGeneratorFactory generatorFactory)
         {         
@@ -43,5 +48,15 @@ namespace ApiElecateProspectsForm.Controllers
 
             return Ok(htmlBuilder.ToString());
         }
+
+        [HttpPost("saveData/{id}")]
+        public async Task<IActionResult> SaveData([FromBody] SaveFormDataRequestDTO request, int id)
+        {
+            IQueryable<FormFieldsModel> formFields = _formFieldsRepository.GetFieldsByFormId(id);
+            var formFieldsList = await formFields.ToListAsync();
+            return Ok(formFieldsList);
+        }
     }
+
+
 }
