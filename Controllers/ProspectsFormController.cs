@@ -15,8 +15,6 @@ namespace ApiElecateProspectsForm.Controllers
     [Route("elecate/prospects")]
     public class ProspectsFormController(IFormFieldsRepository formFieldsRepository) : ControllerBase
     {
-        private readonly IFormFieldsRepository _formFieldsRepository = formFieldsRepository;
-
         [HttpPost("generate/{id}")]
         public async Task<IActionResult> GenerateHtmlForm([FromBody] GenerateFormRequestDTO request, [FromServices] FieldGeneratorFactory generatorFactory, int id)
         {         
@@ -45,7 +43,7 @@ namespace ApiElecateProspectsForm.Controllers
                     string fieldHtml = await generator.GenerateComponent(field);
                     htmlBuilder.Append(fieldHtml);
 
-                    // Create the entity for DB
+                    // Create the entity for save the fields in DB
                     var newField = new FormFieldsModel
                     {
                         IdForm = id, // Save the form id
@@ -54,7 +52,8 @@ namespace ApiElecateProspectsForm.Controllers
                         Size = field is TextFieldRequestDTO textField ? textField.Size : null,
                         Mask = field is TextFieldRequestDTO textFieldWithMask ? textFieldWithMask.Mask : null,
                         Link = field.Link,
-                        Relation = field is SelectFieldRequestDTO selectField ? selectField.Relation : null
+                        Relation = field is SelectFieldRequestDTO selectField ? selectField.Relation : null,
+                        IsDeleted = false,
                     };
 
                     fieldsToInsert.Add(newField);
@@ -63,12 +62,12 @@ namespace ApiElecateProspectsForm.Controllers
 
             htmlBuilder.Append("</form>");
 
-            // Save all the fields in DB
+            // Save fields in DB
             if (fieldsToInsert.Count != 0)
             {
                 try
                 {
-                    await formFieldsRepository.ReplaceFieldsAsync(id, fieldsToInsert);
+                    await formFieldsRepository.SyncFormFieldsAsync(id, fieldsToInsert);
                 }
                 catch (Exception ex)
                 {
@@ -82,7 +81,7 @@ namespace ApiElecateProspectsForm.Controllers
         [HttpPost("saveData/{id}")]
         public async Task<IActionResult> SaveData([FromBody] SaveFormDataRequestDTO request, int id)
         {
-            IQueryable<FormFieldsModel> formFields = _formFieldsRepository.GetFieldsByFormId(id);
+            IQueryable<FormFieldsModel> formFields = formFieldsRepository.GetFieldsByFormId(id);
             var formFieldsList = await formFields.ToListAsync();
             return Ok(formFieldsList);
         }
