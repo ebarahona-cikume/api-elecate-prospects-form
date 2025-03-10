@@ -10,7 +10,7 @@ namespace ApiElecateProspectsForm.Repositories
 
         public IQueryable<ServiceModel> GetAllServices()
         {
-            using var context = _contextFactory.CreateDbContext();
+            using var context = _contextFactory.CreateElecateDbContext();
             return context.Service_Tbl.AsQueryable();
         }
     }

@@ -5,8 +5,8 @@ using ApiElecateProspectsForm.Utils;
 using ApiElecateProspectsForm.Services.FormFieldsGenerators;
 using ApiElecateProspectsForm.Models;
 using ApiElecateProspectsForm.Interfaces;
-using Microsoft.EntityFrameworkCore;
 using System.Net;
+using ApiElecateProspectsForm.Context;
 
 namespace ApiElecateProspectsForm.Controllers
 {
@@ -89,9 +89,76 @@ namespace ApiElecateProspectsForm.Controllers
         [HttpPost("saveData/{id}")]
         public async Task<IActionResult> SaveData([FromBody] SaveFormDataRequestDTO request, int id)
         {
-            IQueryable<FormFieldsModel> formFields = formFieldsRepository.GetFieldsByFormId(id);
-            var formFieldsList = await formFields.ToListAsync();
-            return Ok(formFieldsList);
+            if (request?.Fields == null || request.Fields.Count == 0)
+            {
+                return BadRequest(new { Message = "The request must contain at least one field." });
+            }
+
+            try
+            {
+                // 1. Get the client database context dynamically
+                await using var dbContext = _dbContextFactory.CreateProspectDbContext(id.ToString());
+
+                // 2. Get the existing form fields
+                //var formFields = await dbContext.FormFields_Tbl
+                //    .Where(f => f.IdForm == id && !f.IsDeleted)
+                //    .ToListAsync();
+
+                //if (formFields.Count == 0)
+                //{
+                //    return BadRequest(new { Message = "No fields found for the given form ID." });
+                //}
+
+                // 3. Map the request fields to the corresponding columns
+                var prospect = new Dictionary<string, object>();
+
+                foreach (var field in request.Fields)
+                {
+                    //var matchingField = formFields.FirstOrDefault(f => f.Name == field.Name);
+
+                    //if (matchingField != null)
+                    //{
+                    //    prospect[field.Name] = field.Value; // Assign the value dynamically
+                    //}
+
+                    prospect[field.Name] = field.Value; // Assign the value dynamically
+                }
+
+                if (prospect.Count == 0)
+                {
+                    return BadRequest(new { Message = "No valid fields found to insert." });
+                }
+
+                // 4. Insert the new record dynamically into the Prospects table
+                var prospectEntity = new ProspectModel();
+
+                foreach (var entry in prospect)
+                {
+                    var property = typeof(ProspectModel).GetProperty(entry.Key);
+
+                    if (property != null && property.CanWrite)
+                    {
+                        property.SetValue(prospectEntity, Convert.ChangeType(entry.Value, property.PropertyType));
+                    }
+
+                    //prospectEntity["ClientName"] = "Barceló";
+
+                    prospectEntity.ClientName = "Barceló";
+                }
+
+                dbContext.Prospect.Add(prospectEntity);
+                await dbContext.SaveChangesAsync();
+
+                return Ok(new { Message = "Data saved successfully." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    Message = "An error occurred while saving data.",
+                    Error = ex.Message
+                });
+            }
         }
     }
 

@@ -1,35 +1,31 @@
-﻿using ApiElecateProspectsForm.Context;
+﻿using Microsoft.EntityFrameworkCore;
 
-public class DbContextFactory
+namespace ApiElecateProspectsForm.Context
 {
-    private readonly IConfiguration _configuration;
-
-    public DbContextFactory(IConfiguration configuration)
+    public class DbContextFactory(IConfiguration configuration)
     {
-        _configuration = configuration;
-    }
+        private readonly IConfiguration _configuration = configuration;
 
-    public ElecateDbContext CreateDbContext(string clientDatabaseId = null)
-    {
-        string connectionString;
+        // Retorna el contexto de la base de datos principal
+        public ElecateDbContext CreateElecateDbContext()
+        {
+            var options = new DbContextOptionsBuilder<ElecateDbContext>()
+                .UseSqlServer(_configuration.GetConnectionString("DefaultConnection"))
+                .Options;
 
-        if (!string.IsNullOrEmpty(clientDatabaseId))
-        {
-            // Fetch connection string dynamically based on the client
-            connectionString = GetClientConnectionString(clientDatabaseId);
-        }
-        else
-        {
-            // Use the default connection string
-            connectionString = _configuration.GetConnectionString("DefaultConnection");
+            return new ElecateDbContext(options);
         }
 
-        return new ElecateDbContext(connectionString);
-    }
+        // Retorna el contexto de la base de datos dinámica del cliente
+        public ProspectDbContext CreateProspectDbContext(string clientDatabaseId)
+        {
+            string connectionString = GetClientConnectionString(clientDatabaseId);
+            return new ProspectDbContext(connectionString);
+        }
 
-    private string GetClientConnectionString(string clientDatabaseId)
-    {
-        // Logic to retrieve the database connection string, e.g., from a config, another database, or a service
-        return $"Server=your_server;Database=ClientDb_{clientDatabaseId};User Id=your_user;Password=your_password;";
+        private static string GetClientConnectionString(string clientDatabaseId)
+        {
+            return $"Server=DESK-0068-WIN;Database={clientDatabaseId};Trusted_Connection=True;Encrypt=False;";
+        }
     }
 }

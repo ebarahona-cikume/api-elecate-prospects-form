@@ -18,7 +18,7 @@ namespace ApiElecateProspectsForm.Repositories
         {
             try
             {
-                using var context = _contextFactory.CreateDbContext();
+                using var context = _contextFactory.CreateElecateDbContext();
                 return await context.MaritalStatus_Tbl.ToListAsync();
             }
             catch (Exception ex)

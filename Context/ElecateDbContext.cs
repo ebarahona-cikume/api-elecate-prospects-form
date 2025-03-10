@@ -3,33 +3,19 @@ using ApiElecateProspectsForm.Models;
 
 namespace ApiElecateProspectsForm.Context
 {
-    public class ElecateDbContext : DbContext
+    public class ElecateDbContext(DbContextOptions<ElecateDbContext> options) : DbContext(options)
     {
-        private readonly string _connectionString = string.Empty;
-
-        public ElecateDbContext(DbContextOptions<ElecateDbContext> options)
-            : base(options)
-        {
-        }
-
-        public ElecateDbContext(string connectionString)
-        {
-            _connectionString = connectionString;
-        }
+        public DbSet<MaritalStatusModel> MaritalStatus_Tbl { get; set; }
+        public DbSet<ServiceModel> Service_Tbl { get; set; }
+        public DbSet<FormFieldsModel> FormFields_Tbl { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            if (!string.IsNullOrEmpty(_connectionString))
+            if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlServer(_connectionString);
+                throw new InvalidOperationException("ElecateDbContext requires a configured DbContext.");
             }
         }
-
-        public DbSet<MaritalStatusModel> MaritalStatus_Tbl { get; set; }
-
-        public DbSet<ServiceModel> Service_Tbl { get; set; }
-
-        public DbSet<FormFieldsModel> FormFields_Tbl { get; set; }
     }
 
 }
