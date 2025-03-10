@@ -14,9 +14,9 @@ namespace ApiElecateProspectsForm.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetMaritalStatuses()
+        public async Task<IActionResult> GetMaritalStatuses()
         {
-            var maritalStatuses = _repository.GetAllMaritalStatuses();
+            var maritalStatuses = await _repository.GetAllMaritalStatusesAsync();
             return Ok(maritalStatuses);
         }
     }

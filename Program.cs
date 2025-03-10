@@ -13,9 +13,11 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Configure Entity Framework and the database connection
-builder.Services.AddDbContext<ElecateDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"), 
-    sqlServerOptions => sqlServerOptions.EnableRetryOnFailure()));
+//builder.Services.AddDbContext<ElecateDbContext>(options =>
+//    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"), 
+//    sqlServerOptions => sqlServerOptions.EnableRetryOnFailure()));
+
+builder.Services.AddSingleton<DbContextFactory>();
 
 // Register the repository
 builder.Services.AddScoped<IMaritalStatusRepository, MaritalStatusRepository>();

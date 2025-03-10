@@ -1,21 +1,31 @@
 ﻿using ApiElecateProspectsForm.Context;
 using ApiElecateProspectsForm.Interfaces;
 using ApiElecateProspectsForm.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace ApiElecateProspectsForm.Repositories
 {
     public class MaritalStatusRepository : IMaritalStatusRepository
     {
-        private readonly ElecateDbContext _context;
+        private readonly DbContextFactory _contextFactory;
 
-        public MaritalStatusRepository(ElecateDbContext context)
+        public MaritalStatusRepository(DbContextFactory contextFactory)
         {
-            _context = context;
+            _contextFactory = contextFactory;
         }
 
-        public IEnumerable<MaritalStatusModel> GetAllMaritalStatuses()
+        public async Task<IEnumerable<MaritalStatusModel>> GetAllMaritalStatusesAsync()
         {
-            return [.. _context.MaritalStatus_Tbl];
+            try
+            {
+                using var context = _contextFactory.CreateDbContext();
+                return await context.MaritalStatus_Tbl.ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Error retrieving marital statuses.", ex);
+            }
         }
     }
+
 }

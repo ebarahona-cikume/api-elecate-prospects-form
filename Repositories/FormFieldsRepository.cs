@@ -1,32 +1,36 @@
-﻿using ApiElecateProspectsForm.Context;
-using ApiElecateProspectsForm.Interfaces;
+﻿using ApiElecateProspectsForm.Interfaces;
 using ApiElecateProspectsForm.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace ApiElecateProspectsForm.Repositories
 {
-    public class FormFieldsRepository(ElecateDbContext context) : IFormFieldsRepository
+    public class FormFieldsRepository(DbContextFactory contextFactory) : IFormFieldsRepository
     {
-        private readonly ElecateDbContext _context = context;
+        private readonly DbContextFactory _contextFactory = contextFactory;
         public IQueryable<FormFieldsModel> GetFieldsByFormId(int Id)
         {
-            return _context.FormFields_Tbl.Where(f => f.IdForm == Id);
+            var dbContext = _contextFactory.CreateDbContext(); // Crear un nuevo DbContext dinámico
+
+            return dbContext.FormFields_Tbl
+                .Where(f => f.IdForm == Id && !f.IsDeleted); // Excluir registros eliminados lógicamente
         }
+
 
         public async Task SyncFormFieldsAsync(int formId, IEnumerable<FormFieldsModel> newFields)
         {
             ArgumentNullException.ThrowIfNull(newFields);
 
-            var executionStrategy = _context.Database.CreateExecutionStrategy();
+            var executionStrategy = _contextFactory.CreateDbContext().Database.CreateExecutionStrategy();
 
             await executionStrategy.ExecuteAsync(async () =>
             {
-                using var transaction = await _context.Database.BeginTransactionAsync();
+                await using var dbContext = _contextFactory.CreateDbContext(); // Create a new instance
+                await using var transaction = await dbContext.Database.BeginTransactionAsync();
 
                 try
                 {
-                    var existingFields = await _context.FormFields_Tbl
-                        .Where(f => f.IdForm == formId && !f.IsDeleted) // Exclude deleted fields
+                    var existingFields = await dbContext.FormFields_Tbl
+                        .Where(f => f.IdForm == formId)
                         .ToListAsync();
 
                     // Find fields to mark as deleted (fields in the DB but not in the new fields)
@@ -44,10 +48,11 @@ namespace ApiElecateProspectsForm.Repositories
                         .Where(newField => !existingFields.Any(existing => existing.Name == newField.Name))
                         .ToList();
 
-                    // Mark fields to be deleted as logically deleted (Set IsDeleted to true)
+                    // Mark fields to be deleted instead of removing them
                     foreach (var field in fieldsToRemove)
                     {
-                        field.IsDeleted = true; // Set IsDeleted to true to perform a logical delete
+                        field.IsDeleted = true; // Logical delete
+                        dbContext.FormFields_Tbl.Update(field);
                     }
 
                     // Update fields that have changes
@@ -55,29 +60,27 @@ namespace ApiElecateProspectsForm.Repositories
                     {
                         var newField = newFields.First(f => f.Name == field.Name);
 
-                        // Only update if the field properties have changed
-                        if (field.Name != newField.Name ||
-                            field.Type != newField.Type ||
+                        if (field.Type != newField.Type ||
                             field.Size != newField.Size ||
                             field.Mask != newField.Mask ||
                             field.Link != newField.Link ||
                             field.Relation != newField.Relation)
                         {
-                            field.Name = newField.Name;
                             field.Type = newField.Type;
                             field.Size = newField.Size;
                             field.Mask = newField.Mask;
                             field.Link = newField.Link;
                             field.Relation = newField.Relation;
+                            dbContext.FormFields_Tbl.Update(field);
                         }
                     }
 
                     // Add new fields
                     if (fieldsToAdd.Any())
-                        await _context.FormFields_Tbl.AddRangeAsync(fieldsToAdd);
+                        await dbContext.FormFields_Tbl.AddRangeAsync(fieldsToAdd);
 
                     // Save changes
-                    await _context.SaveChangesAsync();
+                    await dbContext.SaveChangesAsync();
 
                     // Commit transaction
                     await transaction.CommitAsync();
