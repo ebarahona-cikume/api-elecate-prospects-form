@@ -13,13 +13,15 @@ namespace ApiElecateProspectsForm.Controllers
 
     [ApiController]
     [Route("elecate/prospects")]
-    public class ProspectsFormController(IFormFieldsRepository formFieldsRepository) : ControllerBase
+    public class ProspectsFormController(IFormFieldsRepository formFieldsRepository, DbContextFactory dbContextFactory) : ControllerBase
     {
-        [HttpPost("generate/{id}")]
-        public async Task<IActionResult> GenerateHtmlForm([FromBody] GenerateFormRequestDTO request, [FromServices] FieldGeneratorFactory generatorFactory, int id)
-        {         
-            IActionResult validationResult = ValidateFields.Validate(request);
+        private readonly DbContextFactory _dbContextFactory = dbContextFactory;
 
+
+        [HttpPost("generate/{id}")]
+        public async Task<IActionResult> GenerateHtmlForm([FromBody] GenerateFormRequestDTO request, [FromServices] FieldGeneratorFactory generatorFactory, [FromServices] DbContextFactory dbContextFactory, int id)
+        {
+            IActionResult validationResult = ValidateFields.Validate(request);
             if (validationResult is BadRequestObjectResult)
             {
                 return validationResult;
@@ -43,10 +45,10 @@ namespace ApiElecateProspectsForm.Controllers
                     string fieldHtml = await generator.GenerateComponent(field);
                     htmlBuilder.Append(fieldHtml);
 
-                    // Create the entity for save the fields in DB
+                    // Create the entity for saving fields in DB
                     var newField = new FormFieldsModel
                     {
-                        IdForm = id, // Save the form id
+                        IdForm = id,
                         Type = field.Type,
                         Name = field.Name,
                         Size = field is TextFieldRequestDTO textField ? textField.Size : null,
@@ -57,7 +59,7 @@ namespace ApiElecateProspectsForm.Controllers
                     };
 
                     fieldsToInsert.Add(newField);
-                }       
+                }
             }
 
             htmlBuilder.Append("</form>");
@@ -71,12 +73,18 @@ namespace ApiElecateProspectsForm.Controllers
                 }
                 catch (Exception ex)
                 {
-                    return StatusCode(500, new StringErrorMessageResponseDTO { Status = HttpStatusCode.InternalServerError, Title = "Internal Server Error", Message = ex.Message });
+                    return StatusCode(500, new StringErrorMessageResponseDTO
+                    {
+                        Status = HttpStatusCode.InternalServerError,
+                        Title = "Internal Server Error",
+                        Message = ex.Message
+                    });
                 }
             }
 
             return Ok(htmlBuilder.ToString());
         }
+
 
         [HttpPost("saveData/{id}")]
         public async Task<IActionResult> SaveData([FromBody] SaveFormDataRequestDTO request, int id)
