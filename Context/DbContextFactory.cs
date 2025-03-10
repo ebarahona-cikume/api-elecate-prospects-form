@@ -6,20 +6,36 @@ namespace ApiElecateProspectsForm.Context
     {
         private readonly IConfiguration _configuration = configuration;
 
-    public ElecateDbContext CreateDbContext(string? clientDatabaseId = null)
-    {
-        string connectionString = BuildConnectionString(clientDatabaseId);
-        return new ElecateDbContext(connectionString);
-    }
+        public ElecateDbContext CreateElecateDbContext()
+        {
+            string connectionString = BuildConnectionString();
+            var options = BuildDbContextOptions<ElecateDbContext>(connectionString);
+            return new ElecateDbContext(options);
+        }
 
-    private string BuildConnectionString(string? databaseName = null)
-    {
-        string serverName = _configuration["ServerName"] ?? "";
-        string defaultDatabaseName = _configuration["DataBaseName"] ?? "";
-        string connectionStringTemplate = _configuration.GetConnectionString("DefaultConnection") ?? "";
+        public ProspectDbContext CreateProspectDbContext(string clientDatabaseId)
+        {
+            string connectionString = BuildConnectionString(clientDatabaseId);
+            var options = BuildDbContextOptions<ProspectDbContext>(connectionString);
+            return new ProspectDbContext(options);
+        }
 
-        return connectionStringTemplate
-            .Replace("{ServerName}", serverName)
-            .Replace("{DataBaseName}", databaseName ?? defaultDatabaseName);
+        private static DbContextOptions<TContext> BuildDbContextOptions<TContext>(string connectionString) where TContext : DbContext
+        {
+            DbContextOptionsBuilder<TContext> optionsBuilder = new();
+            optionsBuilder.UseSqlServer(connectionString);
+            return optionsBuilder.Options;
+        }
+
+        private string BuildConnectionString(string? databaseName = null)
+        {
+            string serverName = _configuration["ServerName"] ?? "";
+            string defaultDatabaseName = _configuration["DataBaseName"] ?? "";
+            string connectionStringTemplate = _configuration.GetConnectionString("DefaultConnection") ?? "";
+
+            return connectionStringTemplate
+                .Replace("{ServerName}", serverName)
+                .Replace("{DataBaseName}", databaseName ?? defaultDatabaseName);
+        }
     }
 }

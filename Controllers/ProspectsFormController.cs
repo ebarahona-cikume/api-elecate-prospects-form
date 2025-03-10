@@ -122,7 +122,7 @@ namespace ApiElecateProspectsForm.Controllers
                     //    prospect[field.Name] = field.Value; // Assign the value dynamically
                     //}
 
-                    prospect[field.Name] = field.Value; // Assign the value dynamically
+                    prospect[field.Name ?? ""] = field.Value ?? ""; // Assign the value dynamically
                 }
 
                 if (prospect.Count == 0)
