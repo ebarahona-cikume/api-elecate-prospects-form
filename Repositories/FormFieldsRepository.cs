@@ -1,4 +1,5 @@
-﻿using ApiElecateProspectsForm.Interfaces;
+﻿using ApiElecateProspectsForm.Context;
+using ApiElecateProspectsForm.Interfaces;
 using ApiElecateProspectsForm.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,7 +10,7 @@ namespace ApiElecateProspectsForm.Repositories
         private readonly DbContextFactory _contextFactory = contextFactory;
         public IQueryable<FormFieldsModel> GetFieldsByFormId(int Id)
         {
-            var dbContext = _contextFactory.CreateDbContext(); // Crear un nuevo DbContext dinámico
+            var dbContext = _contextFactory.CreateElecateDbContext(); // Crear un nuevo DbContext dinámico
 
             return dbContext.FormFields_Tbl
                 .Where(f => f.IdForm == Id && !f.IsDeleted); // Excluir registros eliminados lógicamente
@@ -20,11 +21,11 @@ namespace ApiElecateProspectsForm.Repositories
         {
             ArgumentNullException.ThrowIfNull(newFields);
 
-            var executionStrategy = _contextFactory.CreateDbContext().Database.CreateExecutionStrategy();
+            var executionStrategy = _contextFactory.CreateElecateDbContext().Database.CreateExecutionStrategy();
 
             await executionStrategy.ExecuteAsync(async () =>
             {
-                await using var dbContext = _contextFactory.CreateDbContext(); // Create a new instance
+                await using var dbContext = _contextFactory.CreateElecateDbContext(); // Create a new instance
                 await using var transaction = await dbContext.Database.BeginTransactionAsync();
 
                 try

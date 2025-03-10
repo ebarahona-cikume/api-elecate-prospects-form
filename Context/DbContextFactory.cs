@@ -1,13 +1,10 @@
-﻿using ApiElecateProspectsForm.Context;
+﻿using Microsoft.EntityFrameworkCore;
 
-public class DbContextFactory
+namespace ApiElecateProspectsForm.Context
 {
-    private readonly IConfiguration _configuration;
-
-    public DbContextFactory(IConfiguration configuration)
+    public class DbContextFactory(IConfiguration configuration)
     {
-        _configuration = configuration;
-    }
+        private readonly IConfiguration _configuration = configuration;
 
     public ElecateDbContext CreateDbContext(string? clientDatabaseId = null)
     {
