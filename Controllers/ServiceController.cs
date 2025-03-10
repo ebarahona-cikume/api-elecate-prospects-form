@@ -5,13 +5,9 @@ namespace ApiElecateProspectsForm.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class ServiceController : Controller
+    public class ServiceController(IServiceRepository repository) : Controller
     {
-        private readonly IServiceRepository _repository;
-        public ServiceController(IServiceRepository repository)
-        {
-            _repository = repository;
-        }
+        private readonly IServiceRepository _repository = repository;
 
         [HttpGet]
         public IActionResult GetServices()

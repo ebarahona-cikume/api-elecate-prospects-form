@@ -9,27 +9,20 @@ public class DbContextFactory
         _configuration = configuration;
     }
 
-    public ElecateDbContext CreateDbContext(string clientDatabaseId = null)
+    public ElecateDbContext CreateDbContext(string? clientDatabaseId = null)
     {
-        string connectionString;
-
-        if (!string.IsNullOrEmpty(clientDatabaseId))
-        {
-            // Fetch connection string dynamically based on the client
-            connectionString = GetClientConnectionString(clientDatabaseId);
-        }
-        else
-        {
-            // Use the default connection string
-            connectionString = _configuration.GetConnectionString("DefaultConnection");
-        }
-
+        string connectionString = BuildConnectionString(clientDatabaseId);
         return new ElecateDbContext(connectionString);
     }
 
-    private string GetClientConnectionString(string clientDatabaseId)
+    private string BuildConnectionString(string? databaseName = null)
     {
-        // Logic to retrieve the database connection string, e.g., from a config, another database, or a service
-        return $"Server=your_server;Database=ClientDb_{clientDatabaseId};User Id=your_user;Password=your_password;";
+        string serverName = _configuration["ServerName"] ?? "";
+        string defaultDatabaseName = _configuration["DataBaseName"] ?? "";
+        string connectionStringTemplate = _configuration.GetConnectionString("DefaultConnection") ?? "";
+
+        return connectionStringTemplate
+            .Replace("{ServerName}", serverName)
+            .Replace("{DataBaseName}", databaseName ?? defaultDatabaseName);
     }
 }

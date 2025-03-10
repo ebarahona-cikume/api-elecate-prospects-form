@@ -1,11 +1,16 @@
-using Microsoft.EntityFrameworkCore;
-using ApiElecateProspectsForm.Context;
 using ApiElecateProspectsForm.Repositories;
 using ApiElecateProspectsForm.Interfaces;
 using ApiElecateProspectsForm.Services.FormFieldsGenerators;
 using ApiElecateProspectsForm.Services.FormComponentsGenerators;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
+// Configurar la carga de archivos de configuración
+builder.Configuration
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables();
 
 // Add services to the container.
 builder.Services.AddControllers();

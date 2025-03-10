@@ -5,13 +5,9 @@ namespace ApiElecateProspectsForm.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class MaritalStatusController : Controller
+    public class MaritalStatusController(IMaritalStatusRepository repository) : Controller
     {
-        private readonly IMaritalStatusRepository _repository;
-        public MaritalStatusController(IMaritalStatusRepository repository)
-        {
-            _repository = repository;
-        }
+        private readonly IMaritalStatusRepository _repository = repository;
 
         [HttpGet]
         public async Task<IActionResult> GetMaritalStatuses()
