@@ -120,6 +120,12 @@ namespace ApiElecateProspectsForm.Controllers
                 bool honeypotFieldExists = false;
                 bool clientNameExists = false;
 
+                List<string> unmappedFields = []; // Lista para almacenar los campos sin mapeo
+                List<string> duplicatedFields = []; // Lista de campos duplicados en la solicitud
+
+                // Diccionario para contar la frecuencia de cada campo enviado en el JSON
+                Dictionary<string, int> fieldOccurrences = new(StringComparer.OrdinalIgnoreCase);
+
                 foreach (FieldSaveFormRequestDTO field in request.Fields)
                 {
                     // Honeypot validation
@@ -140,6 +146,16 @@ namespace ApiElecateProspectsForm.Controllers
 
                     if (!string.IsNullOrEmpty(field.Name))
                     {
+                        // Contar las veces que aparece cada campo
+                        if (fieldOccurrences.ContainsKey(field.Name))
+                        {
+                            fieldOccurrences[field.Name]++;
+                        }
+                        else
+                        {
+                            fieldOccurrences[field.Name] = 1;
+                        }
+
                         FormFieldsModel? matchingField = formFields
                             .FirstOrDefault(f => f.Name != null && f.Name.Equals(field.Name, StringComparison.OrdinalIgnoreCase));
 
@@ -147,7 +163,34 @@ namespace ApiElecateProspectsForm.Controllers
                         {
                             prospect[field.Name] = field.Value ?? ""; // Assign the value dynamically
                         }
+                        else
+                        {
+                            unmappedFields.Add(field.Name); // Agregar el campo sin mapeo a la lista
+                        }
                     }
+                }
+
+                // Identificar los campos que aparecen más de una vez en la solicitud
+                duplicatedFields = [.. fieldOccurrences
+                    .Where(kvp => kvp.Value > 1)
+                    .Select(kvp => kvp.Key)];
+
+                // Construir mensaje de error si hay campos sin mapeo o duplicados
+                if (unmappedFields.Count > 0 || duplicatedFields.Count > 0)
+                {
+                    List<string> errorMessages = [];
+
+                    if (unmappedFields.Count > 0)
+                    {
+                        errorMessages.Add($"The following fields do not have a mapping in the database: {string.Join(", ", unmappedFields)}.");
+                    }
+
+                    if (duplicatedFields.Count > 0)
+                    {
+                        errorMessages.Add($"The following fields were sent multiple times: {string.Join(", ", duplicatedFields)}.");
+                    }
+
+                    return _responseHandler.HandleError(string.Join(" ", errorMessages), HttpStatusCode.BadRequest);
                 }
 
                 //  Honeypot field exists.
