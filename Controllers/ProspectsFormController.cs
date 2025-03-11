@@ -20,9 +20,14 @@ namespace ApiElecateProspectsForm.Controllers
         public DbContextFactory DbContextFactory => _dbContextFactory;
 
         [HttpPost("generate/{id}")]
-        public async Task<IActionResult> GenerateHtmlForm([FromBody] GenerateFormRequestDTO request, [FromServices] FieldGeneratorFactory generatorFactory, [FromServices] DbContextFactory dbContextFactory, int id)
+        public async Task<IActionResult> GenerateHtmlForm(
+            [FromBody] GenerateFormRequestDTO request, 
+            [FromServices] FieldGeneratorFactory generatorFactory, 
+            [FromServices] DbContextFactory dbContextFactory, 
+            int id)
         {
             IActionResult validationResult = ValidateFields.Validate(request);
+
             if (validationResult is BadRequestObjectResult)
             {
                 return validationResult;
@@ -31,9 +36,12 @@ namespace ApiElecateProspectsForm.Controllers
             StringBuilder htmlBuilder = new();
             htmlBuilder.Append("<form>\n");
 
+            //Add hidden field honeypot validation
+            htmlBuilder.Append("<input type='hidden' id='honeypot' name='honeypot' value='' style='display:none;'>\n");
+
             List<FormFieldsModel> fieldsToInsert = [];
 
-            foreach (var field in request.Fields)
+            foreach (FieldGenerateFormRequestDTO? field in request.Fields)
             {
                 if (field != null)
                 {
@@ -42,7 +50,7 @@ namespace ApiElecateProspectsForm.Controllers
                         fieldType = FieldType.Text;
                     }
 
-                    var generator = generatorFactory.GetGenerator(fieldType);
+                    Interfaces.FormFieldsGenerators.IFormFieldGenerator generator = generatorFactory.GetGenerator(fieldType);
                     string fieldHtml = await generator.GenerateComponent(field);
                     htmlBuilder.Append(fieldHtml);
 
@@ -92,13 +100,13 @@ namespace ApiElecateProspectsForm.Controllers
         {
             if (request?.Fields == null || request.Fields.Count == 0)
             {
-                return BadRequest(new { Message = "The request must contain at least one field." });
+                return HandleError("The request must contain at least one field.", HttpStatusCode.BadRequest);
             }
 
             try
             {
                 // 1. Get the client database context dynamically
-                await using var dbContext = _dbContextFactory.CreateProspectDbContext(id.ToString());
+                await using ProspectDbContext dbContext = _dbContextFactory.CreateProspectDbContext(id.ToString());
 
                 // 2. Get the existing form fields
                 //var formFields = await dbContext.FormFields_Tbl
@@ -111,10 +119,20 @@ namespace ApiElecateProspectsForm.Controllers
                 //}
 
                 // 3. Map the request fields to the corresponding columns
-                var prospect = new Dictionary<string, object>();
+                Dictionary<string, object> prospect = new Dictionary<string, object>();
+                bool honeypotFieldExists = false;
 
-                foreach (var field in request.Fields)
+                foreach (FieldSaveFormRequestDTO field in request.Fields)
                 {
+                    // Honeypot validation
+                    if (!string.IsNullOrEmpty(field.Name) && field.Name.Equals("Honeypot", StringComparison.OrdinalIgnoreCase))
+                    {
+                        honeypotFieldExists = true;
+                        if (!string.IsNullOrEmpty(field.Value))
+                        {
+                            return HandleError("Bot detected.", HttpStatusCode.BadRequest);
+                        }
+                    }
                     //var matchingField = formFields.FirstOrDefault(f => f.Name == field.Name);
 
                     //if (matchingField != null)
@@ -125,41 +143,55 @@ namespace ApiElecateProspectsForm.Controllers
                     prospect[field.Name ?? ""] = field.Value ?? ""; // Assign the value dynamically
                 }
 
+                if (!honeypotFieldExists)
+                {
+                    return HandleError("Honeypot field is missing.", HttpStatusCode.BadRequest);
+                }
+
                 if (prospect.Count == 0)
                 {
-                    return BadRequest(new { Message = "No valid fields found to insert." });
+                    return HandleError("No valid fields found to insert.", HttpStatusCode.BadRequest);
                 }
 
                 // 4. Insert the new record dynamically into the Prospects table
                 var prospectEntity = new ProspectModel();
 
-                foreach (var entry in prospect)
+                foreach (KeyValuePair<string, object> entry in prospect)
                 {
-                    var property = typeof(ProspectModel).GetProperty(entry.Key);
+                    System.Reflection.PropertyInfo? property = typeof(ProspectModel).GetProperty(entry.Key);
 
                     if (property != null && property.CanWrite)
                     {
                         property.SetValue(prospectEntity, Convert.ChangeType(entry.Value, property.PropertyType));
                     }
-
-                    //prospectEntity["ClientName"] = "Barceló";
-
-                    prospectEntity.ClientName = "Barceló";
                 }
 
                 dbContext.Prospect.Add(prospectEntity);
                 await dbContext.SaveChangesAsync();
 
-                return Ok(new { Message = "Data saved successfully." });
+                return HandleSuccess("Data saved successfully.");
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new
-                {
-                    Message = "An error occurred while saving data.",
-                    Error = ex.Message
-                });
+                return HandleError("An error occurred while saving data.", HttpStatusCode.InternalServerError, ex);
             }
         }
+
+        private IActionResult HandleSuccess(string message) => Ok(new StringSuccessMessageResponseDTO
+        {
+            Status = HttpStatusCode.OK,
+            Title = "Success",
+            Message = message
+        });
+
+        private IActionResult HandleError(string message, 
+            HttpStatusCode statusCode = HttpStatusCode.InternalServerError, 
+            Exception? ex = null) => StatusCode((int)statusCode, 
+                new StringErrorMessageResponseDTO
+        {
+            Status = statusCode,
+            Title = statusCode == HttpStatusCode.BadRequest ? "Bad Request" : "Internal Server Error",
+            Message = ex?.Message ?? message
+        });
     }
 }
