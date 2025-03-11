@@ -16,13 +16,22 @@ namespace ApiElecateProspectsForm.Utils
                 return null;
             }
 
-            string? type = typeElement.GetString();
-            return type switch
+            string? type = typeElement.GetString()?.ToLowerInvariant() ?? "";
+            List<string> textFieldTypes = ["text", "number", "password", "email"];
+            List<string> selectFieldTypes = ["select", "checkbox", "radio"];
+
+            if (textFieldTypes.Contains(type))
             {
-                "Text" or "Number" or "Password" or "Email" => JsonSerializer.Deserialize<TextFieldRequestDTO>(root.GetRawText(), options),
-                "Select" or "Checkbox" or "Radio" => JsonSerializer.Deserialize<SelectFieldRequestDTO>(root.GetRawText(), options),
-                _ => null,
-            };
+                return JsonSerializer.Deserialize<TextFieldRequestDTO>(root.GetRawText(), options);
+            }
+            else if (selectFieldTypes.Contains(type))
+            {
+                return JsonSerializer.Deserialize<SelectFieldRequestDTO>(root.GetRawText(), options);
+            }
+            else
+            {
+                return null;
+            }
         }
 
         public override void Write(Utf8JsonWriter writer, FieldGenerateFormRequestDTO value, JsonSerializerOptions options)

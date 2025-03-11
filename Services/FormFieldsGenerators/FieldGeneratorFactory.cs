@@ -8,10 +8,7 @@ namespace ApiElecateProspectsForm.Services.FormFieldsGenerators
     {
         private readonly IServiceProvider _serviceProvider;
 
-        public FieldGeneratorFactory(IServiceProvider serviceProvider)
-        {
-            _serviceProvider = serviceProvider;
-        }
+        public FieldGeneratorFactory(IServiceProvider serviceProvider) => _serviceProvider = serviceProvider;
 
         public IFormFieldGenerator GetGenerator(FieldType fieldType) => fieldType switch
         {
