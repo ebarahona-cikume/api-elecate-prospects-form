@@ -9,14 +9,14 @@ namespace ApiElecateProspectsForm.Context
         public ElecateDbContext CreateElecateDbContext()
         {
             string connectionString = BuildConnectionString();
-            var options = BuildDbContextOptions<ElecateDbContext>(connectionString);
+            DbContextOptions<ElecateDbContext> options = BuildDbContextOptions<ElecateDbContext>(connectionString);
             return new ElecateDbContext(options);
         }
 
         public ProspectDbContext CreateProspectDbContext(string clientDatabaseId)
         {
             string connectionString = BuildConnectionString(clientDatabaseId);
-            var options = BuildDbContextOptions<ProspectDbContext>(connectionString);
+            DbContextOptions<ProspectDbContext> options = BuildDbContextOptions<ProspectDbContext>(connectionString);
             return new ProspectDbContext(options);
         }
 

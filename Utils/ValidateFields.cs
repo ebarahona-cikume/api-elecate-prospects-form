@@ -9,6 +9,8 @@ namespace ApiElecateProspectsForm.Utils
     public static class ValidateFields
     {
         private static readonly IConfiguration _configuration;
+        private static readonly string[] ValidFieldTypes;
+        private static readonly ResponseHandler _responseHandler = new();
 
         static ValidateFields()
         {
@@ -16,23 +18,19 @@ namespace ApiElecateProspectsForm.Utils
                 .SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
             _configuration = builder.Build();
+
+            ValidFieldTypes = Enum.GetNames(typeof(FieldType));
         }
 
         public static IActionResult Validate(GenerateFormRequestDTO request)
         {
             if (request == null || request.Fields == null || request.Fields.Count == 0)
             {
-                StringErrorMessageResponseDTO errorResponse = new()
-                {
-                    Status = HttpStatusCode.BadRequest,
-                    Title = "Bad Request",
-                    Message = "You must provide at least one field"
-                };
-
-                return new BadRequestObjectResult(errorResponse);
+                return _responseHandler.HandleError("You must provide at least one field", HttpStatusCode.BadRequest);
             }
 
-            List<FieldErrorDTO> errors = new();
+            List<FieldErrorDTO> errors = [];
+            List<string> relationFieldsList = ["Select", "Radio", "Checkbox"];
 
             PropertyInfo[] fieldProperties = typeof(FieldGenerateFormRequestDTO).Assembly.GetTypes()
                 .Where(t => t.IsSubclassOf(typeof(FieldGenerateFormRequestDTO)) || t == typeof(FieldGenerateFormRequestDTO))
@@ -70,6 +68,10 @@ namespace ApiElecateProspectsForm.Utils
                             {
                                 fieldErrors.Add($"The field '{fieldProperty.Name}' cannot be empty");
                             }
+                            if (fieldProperty.Name.Equals("Type") && !ValidFieldTypes.Contains(value.GetString()))
+                            {
+                                fieldErrors.Add($"The value '{value.GetString()}' for field '{fieldProperty.Name}' does not exist");
+                            }
                         }
                     }
                 }
@@ -82,18 +84,23 @@ namespace ApiElecateProspectsForm.Utils
                         PropertyInfo property = properties[j];
                         object? value = property.GetValue(field);
 
-                        if (value == null && (field.Type != null &&
-                            field.Type.Equals("Select") ? requiredFieldElements.Contains(property.Name) : !omittedFieldElements.Contains(property.Name)))
+                        if (value == null && 
+                            (field.Type != null &&
+                                relationFieldsList.Contains(field.Type) ? 
+                                requiredFieldElements.Contains(property.Name) : 
+                                !omittedFieldElements.Contains(property.Name)))
                         {
                             fieldErrors.Add($"The field '{property.Name}' is required");
                         }
-                        else if (value is string stringValue && string.IsNullOrEmpty(stringValue) &&
-                            (field.Type != null &&
-                            field.Type.Equals("Select") ? requiredFieldElements.Contains(property.Name) : !omittedFieldElements.Contains(property.Name)))
+                        else if (value is string stringValue && 
+                            string.IsNullOrEmpty(stringValue) &&
+                            (field.Type != null && 
+                                relationFieldsList.Contains(field.Type) ? 
+                                requiredFieldElements.Contains(property.Name) : 
+                                !omittedFieldElements.Contains(property.Name)))
                         {
                             fieldErrors.Add($"The field '{property.Name}' cannot be empty");
                         }
-
                     }
                 }
 
@@ -109,17 +116,10 @@ namespace ApiElecateProspectsForm.Utils
 
             if (errors.Count > 0)
             {
-                ArrayErrorMessageResponseDTO errorResponse = new()
-                {
-                    Status = HttpStatusCode.BadRequest,
-                    Title = "Bad Request",
-                    Errors = errors
-                };
-
-                return new BadRequestObjectResult(errorResponse);
+                return _responseHandler.HandleError("Validation errors occurred", HttpStatusCode.BadRequest, new Exception(JsonSerializer.Serialize(errors)), true, errors);
             }
 
-            return new OkResult();
+            return _responseHandler.HandleSuccess("Validation successful");
         }
     }
 }
