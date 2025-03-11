@@ -17,8 +17,6 @@ namespace ApiElecateProspectsForm.Controllers
     {
         private readonly DbContextFactory _dbContextFactory = dbContextFactory;
 
-        public DbContextFactory DbContextFactory => _dbContextFactory;
-
         [HttpPost("generate/{id}")]
         public async Task<IActionResult> GenerateHtmlForm([FromBody] GenerateFormRequestDTO request, [FromServices] FieldGeneratorFactory generatorFactory, [FromServices] DbContextFactory dbContextFactory, int id)
         {
@@ -163,3 +161,6 @@ namespace ApiElecateProspectsForm.Controllers
         }
     }
 }
+
+
+
