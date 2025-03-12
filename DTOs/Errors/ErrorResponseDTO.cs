@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using System.Text.Json.Serialization;
 
-namespace ApiElecateProspectsForm.DTOs
+namespace ApiElecateProspectsForm.DTOs.Errors
 {
     public abstract class ErrorResponseDTO
     {

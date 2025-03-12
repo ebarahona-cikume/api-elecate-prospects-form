@@ -1,4 +1,5 @@
 ﻿using ApiElecateProspectsForm.DTOs;
+using ApiElecateProspectsForm.DTOs.Errors;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
@@ -16,48 +17,49 @@ namespace ApiElecateProspectsForm.Utils
             });
         }
 
-        public IActionResult HandleError(string message,
+        public IActionResult HandleError(
+            string message,
             HttpStatusCode statusCode = HttpStatusCode.InternalServerError,
-            Exception? ex = null, bool isArrayErrorMessage = false, List<FieldErrorDTO>? errors = null)
+            Exception? ex = null,
+            bool isFieldErrors = false,
+            List<FieldErrorDTO>? fieldErrors = null, 
+            List<string>? generalErrors = null
+        )
         {
-            if (isArrayErrorMessage && errors != null)
+            var title = statusCode == HttpStatusCode.BadRequest ? "Bad Request" : "Internal Server Error";
+
+            if (isFieldErrors && fieldErrors != null)
             {
-                var arrayErrorResponse = new ArrayErrorMessageResponseDTO
+                var fieldErrorsResponse = new FormFieldErrorsMessagesResponseDTO
                 {
                     Status = statusCode,
-                    Title = statusCode == HttpStatusCode.BadRequest ? "Bad Request" : "Internal Server Error",
-                    Errors = errors
+                    Title = title,
+                    Errors = fieldErrors
                 };
 
-                if (statusCode == HttpStatusCode.BadRequest)
-                {
-                    return new BadRequestObjectResult(arrayErrorResponse);
-                }
-
-                return new ObjectResult(arrayErrorResponse)
-                {
-                    StatusCode = (int)statusCode
-                };
+                return new ObjectResult(fieldErrorsResponse) { StatusCode = (int)statusCode };
             }
-            else
+
+            if (generalErrors != null)
             {
-                var errorResponse = new StringErrorMessageResponseDTO
+                var generalErrorsResponse = new GeneralErrorsResponseDTO
                 {
                     Status = statusCode,
-                    Title = statusCode == HttpStatusCode.BadRequest ? "Bad Request" : "Internal Server Error",
-                    Message = message // Use the provided message instead of ex.Message
+                    Title = title,
+                    Errors = generalErrors
                 };
 
-                if (statusCode == HttpStatusCode.BadRequest)
-                {
-                    return new BadRequestObjectResult(errorResponse);
-                }
-
-                return new ObjectResult(errorResponse)
-                {
-                    StatusCode = (int)statusCode
-                };
+                return new ObjectResult(generalErrorsResponse) { StatusCode = (int)statusCode };
             }
+
+            var errorResponse = new StringErrorMessageResponseDTO
+            {
+                Status = statusCode,
+                Title = title,
+                Message = message
+            };
+
+            return new ObjectResult(errorResponse) { StatusCode = (int)statusCode };
         }
 
     }

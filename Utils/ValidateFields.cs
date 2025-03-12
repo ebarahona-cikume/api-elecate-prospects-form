@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using System.Text.Json;
 using System.Reflection;
+using ApiElecateProspectsForm.DTOs.Errors;
 
 namespace ApiElecateProspectsForm.Utils
 {

@@ -1,4 +1,4 @@
-﻿using ApiElecateProspectsForm.DTOs;
+﻿using ApiElecateProspectsForm.DTOs.Errors;
 using ApiElecateProspectsForm.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
@@ -44,7 +44,7 @@ namespace ApiElecateProspectsForm.Utils
 
             if (errors.Count > 0)
             {
-                ArrayErrorMessageResponseDTO errorResponse = new()
+                FormFieldErrorsMessagesResponseDTO errorResponse = new()
                 {
                     Status = HttpStatusCode.BadRequest,
                     Title = "Bad Request",

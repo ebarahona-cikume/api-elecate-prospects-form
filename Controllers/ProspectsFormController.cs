@@ -4,10 +4,10 @@ using System.Text;
 using ApiElecateProspectsForm.Utils;
 using ApiElecateProspectsForm.Services.FormFieldsGenerators;
 using ApiElecateProspectsForm.Models;
-using ApiElecateProspectsForm.Interfaces;
 using System.Net;
 using ApiElecateProspectsForm.Context;
 using Microsoft.EntityFrameworkCore;
+using ApiElecateProspectsForm.Interfaces.Repositories;
 
 namespace ApiElecateProspectsForm.Controllers
 {
@@ -98,136 +98,37 @@ namespace ApiElecateProspectsForm.Controllers
 
             try
             {
-                // 1. Get the form fields from Elecate_DB
-                List<FormFieldsModel> formFields;
-                await using (ElecateDbContext elecateDbContext = _dbContextFactory.CreateElecateDbContext())
-                {
-                    formFields = await elecateDbContext.FormFields_Tbl
-                        .Where(f => f.IdForm == id && !f.IsDeleted)
-                        .ToListAsync();
-                }
-
+                var formFields = await GetFormFields(id);
                 if (formFields.Count == 0)
                 {
                     return _responseHandler.HandleError("No fields found for the given form ID.", HttpStatusCode.BadRequest);
                 }
 
-                // 2. Get the client database context dynamically
-                await using ProspectDbContext dbContext = _dbContextFactory.CreateProspectDbContext(id.ToString());
+                await using var dbContext = _dbContextFactory.CreateProspectDbContext(id.ToString());
 
-                // 3. Map the request fields to the corresponding columns
-                Dictionary<string, object> prospect = [];
-                bool honeypotFieldExists = false;
-                bool clientNameExists = false;
+                var (prospect, honeypotFieldExists, clientNameExists, unmappedFields, duplicatedFields) = MapRequestFields(request, formFields);
 
-                List<string> unmappedFields = []; // Lista para almacenar los campos sin mapeo
-                List<string> duplicatedFields = []; // Lista de campos duplicados en la solicitud
-
-                // Diccionario para contar la frecuencia de cada campo enviado en el JSON
-                Dictionary<string, int> fieldOccurrences = new(StringComparer.OrdinalIgnoreCase);
-
-                foreach (FieldSaveFormRequestDTO field in request.Fields)
-                {
-                    // Honeypot validation
-                    if (!string.IsNullOrEmpty(field.Name) && field.Name.Equals("Honeypot", StringComparison.OrdinalIgnoreCase))
-                    {
-                        honeypotFieldExists = true;
-                        if (!string.IsNullOrEmpty(field.Value))
-                        {
-                            return _responseHandler.HandleError("Bot detected.", HttpStatusCode.BadRequest);
-                        }
-                    }
-
-                    //ClientName validation
-                    if (!string.IsNullOrEmpty(field.Name) && field.Name.Equals("ClientName", StringComparison.OrdinalIgnoreCase))
-                    {
-                        clientNameExists = true;
-                    }
-
-                    if (!string.IsNullOrEmpty(field.Name))
-                    {
-                        // Contar las veces que aparece cada campo
-                        if (fieldOccurrences.ContainsKey(field.Name))
-                        {
-                            fieldOccurrences[field.Name]++;
-                        }
-                        else
-                        {
-                            fieldOccurrences[field.Name] = 1;
-                        }
-
-                        FormFieldsModel? matchingField = formFields
-                            .FirstOrDefault(f => f.Name != null && f.Name.Equals(field.Name, StringComparison.OrdinalIgnoreCase));
-
-                        if (matchingField != null)
-                        {
-                            prospect[field.Name] = field.Value ?? ""; // Assign the value dynamically
-                        }
-                        else
-                        {
-                            unmappedFields.Add(field.Name); // Agregar el campo sin mapeo a la lista
-                        }
-                    }
-                }
-
-                // Identificar los campos que aparecen más de una vez en la solicitud
-                duplicatedFields = [.. fieldOccurrences
-                    .Where(kvp => kvp.Value > 1)
-                    .Select(kvp => kvp.Key)];
-
-                // Construir mensaje de error si hay campos sin mapeo o duplicados
-                if (unmappedFields.Count > 0 || duplicatedFields.Count > 0)
-                {
-                    List<string> errorMessages = [];
-
-                    if (unmappedFields.Count > 0)
-                    {
-                        errorMessages.Add($"The following fields do not have a mapping in the database: {string.Join(", ", unmappedFields)}.");
-                    }
-
-                    if (duplicatedFields.Count > 0)
-                    {
-                        errorMessages.Add($"The following fields were sent multiple times: {string.Join(", ", duplicatedFields)}.");
-                    }
-
-                    return _responseHandler.HandleError(string.Join(" ", errorMessages), HttpStatusCode.BadRequest);
-                }
-
-                //  Honeypot field exists.
                 if (!honeypotFieldExists)
                 {
                     return _responseHandler.HandleError("Honeypot field is missing.", HttpStatusCode.BadRequest);
                 }
 
-                //  ClientName field is missing.
                 if (!clientNameExists)
                 {
                     return _responseHandler.HandleError("ClientName field is missing.", HttpStatusCode.BadRequest);
                 }
 
-                // All Prospects fiels are missing.
+                if (unmappedFields.Count > 0 || duplicatedFields.Count > 0)
+                {
+                    return HandleFieldValidationErrors(unmappedFields, duplicatedFields);
+                }
+
                 if (prospect.Count == 0)
                 {
                     return _responseHandler.HandleError("No valid fields found to insert.", HttpStatusCode.BadRequest);
                 }
 
-                // 4. Insert the new record dynamically into the Prospects table
-                ProspectModel prospectEntity = new();
-
-                foreach (KeyValuePair<string, object> entry in prospect)
-                {
-                    // Obtener todas las propiedades de ProspectModel
-                    System.Reflection.PropertyInfo[] properties = typeof(ProspectModel).GetProperties();
-
-                    // Buscar la propiedad que coincida con el nombre, ignorando mayúsculas y minúsculas
-                    System.Reflection.PropertyInfo? property = properties.FirstOrDefault(p => p.Name.Equals(entry.Key, StringComparison.OrdinalIgnoreCase));
-
-                    if (property != null && property.CanWrite)
-                    {
-                        property.SetValue(prospectEntity, Convert.ChangeType(entry.Value, property.PropertyType));
-                    }
-                }
-
+                var prospectEntity = MapProspectEntity(prospect);
                 dbContext.Prospect.Add(prospectEntity);
                 await dbContext.SaveChangesAsync();
 
@@ -235,18 +136,112 @@ namespace ApiElecateProspectsForm.Controllers
             }
             catch (Exception ex)
             {
-                string errorMessage = "An error occurred while saving data.";
-
-                if (ex.InnerException != null)
-                {
-                    errorMessage += $" Inner exception: {ex.InnerException.Message}";
-                }
-
-                return _responseHandler.HandleError(errorMessage, HttpStatusCode.InternalServerError, ex);
+                return HandleException(ex);
             }
+        }
+
+        private async Task<List<FormFieldsModel>> GetFormFields(int formId)
+        {
+            await using var elecateDbContext = _dbContextFactory.CreateElecateDbContext();
+            return await elecateDbContext.FormFields_Tbl
+                .Where(f => f.IdForm == formId && !f.IsDeleted)
+                .ToListAsync();
+        }
+
+        private static (Dictionary<string, object> Prospect, bool HoneypotFieldExists, bool ClientNameExists, List<string> UnmappedFields, List<string> DuplicatedFields)
+            MapRequestFields(SaveFormDataRequestDTO request, List<FormFieldsModel> formFields)
+        {
+            var prospect = new Dictionary<string, object>();
+            var honeypotFieldExists = false;
+            var clientNameExists = false;
+            var unmappedFields = new List<string>();
+            var duplicatedFields = new List<string>();
+
+            var fieldOccurrences = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var field in request.Fields)
+            {
+                if (field.Name != null)
+                {
+                    if (field.Name.Equals("Honeypot", StringComparison.OrdinalIgnoreCase))
+                    {
+                        honeypotFieldExists = true;
+                        if (!string.IsNullOrEmpty(field.Value))
+                        {
+                            throw new ArgumentException("Bot detected.");
+                        }
+                    }
+
+                    if (field.Name.Equals("ClientName", StringComparison.OrdinalIgnoreCase))
+                    {
+                        clientNameExists = true;
+                    }
+
+                    fieldOccurrences[field.Name] = fieldOccurrences.GetValueOrDefault(field.Name, 0) + 1;
+
+                    var matchingField = formFields.FirstOrDefault(f => f.Name != null && f.Name.Equals(field.Name, StringComparison.OrdinalIgnoreCase));
+                    if (matchingField != null)
+                    {
+                        prospect[field.Name] = field.Value ?? "";
+                    }
+                    else
+                    {
+                        unmappedFields.Add(field.Name);
+                    }
+                }
+            }
+
+            duplicatedFields = fieldOccurrences
+                .Where(kvp => kvp.Value > 1)
+                .Select(kvp => kvp.Key)
+                .ToList();
+
+            return (prospect, honeypotFieldExists, clientNameExists, unmappedFields, duplicatedFields);
+        }
+
+        private IActionResult HandleFieldValidationErrors(List<string> unmappedFields, List<string> duplicatedFields)
+        {
+            var errorMessages = new List<string>();
+
+            if (unmappedFields.Count > 0)
+            {
+                errorMessages.Add($"The following fields do not have a mapping in the database: '{string.Join(", ", unmappedFields)}'.");
+            }
+
+            if (duplicatedFields.Count > 0)
+            {
+                errorMessages.Add($"The following fields were sent multiple times: '{string.Join(", ", duplicatedFields)}'.");
+            }
+
+            return _responseHandler.HandleError("Validation errors occurred", HttpStatusCode.BadRequest, null, true, null, errorMessages);
+        }
+
+        private static ProspectModel MapProspectEntity(Dictionary<string, object> prospect)
+        {
+            var prospectEntity = new ProspectModel();
+
+            foreach (var entry in prospect)
+            {
+                var property = typeof(ProspectModel).GetProperties()
+                    .FirstOrDefault(p => p.Name.Equals(entry.Key, StringComparison.OrdinalIgnoreCase));
+
+                if (property != null && property.CanWrite)
+                {
+                    property.SetValue(prospectEntity, Convert.ChangeType(entry.Value, property.PropertyType));
+                }
+            }
+
+            return prospectEntity;
+        }
+
+        private IActionResult HandleException(Exception ex)
+        {
+            var errorMessage = "An error occurred while saving data.";
+            if (ex.InnerException != null)
+            {
+                errorMessage += $" Inner exception: {ex.InnerException.Message}";
+            }
+            return _responseHandler.HandleError(errorMessage, HttpStatusCode.InternalServerError, ex);
         }
     }
 }
-
-
-

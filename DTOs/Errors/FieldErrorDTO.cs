@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace ApiElecateProspectsForm.DTOs
+namespace ApiElecateProspectsForm.DTOs.Errors
 {
     public class FieldErrorDTO
     {
