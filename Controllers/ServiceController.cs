@@ -1,4 +1,4 @@
-﻿using ApiElecateProspectsForm.Interfaces;
+﻿using ApiElecateProspectsForm.Interfaces.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ApiElecateProspectsForm.Controllers

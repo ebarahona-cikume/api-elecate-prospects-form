@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using ApiElecateProspectsForm.Interfaces;
+using ApiElecateProspectsForm.Interfaces.Repositories;
 
 namespace ApiElecateProspectsForm.Controllers
 {

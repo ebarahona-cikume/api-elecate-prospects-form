@@ -1,9 +1,11 @@
 ﻿using ApiElecateProspectsForm.Controllers;
 using ApiElecateProspectsForm.DTOs;
+using ApiElecateProspectsForm.DTOs.Errors;
 using ApiElecateProspectsForm.Interfaces;
 using ApiElecateProspectsForm.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
+using System.Text.Json;
 
 namespace ApiElecateProspectsForm.Utils
 {
@@ -19,47 +21,42 @@ namespace ApiElecateProspectsForm.Utils
         {
             ProspectModel prospectModel = new();
             ProspectModel prospect = prospectModel;
-            Dictionary<string, object> prospectData = [];
+            Dictionary<string, object> prospectData = new();
 
             // Reset the state of HoneypotFieldExists
             GlobalStateDTO.HoneypotFieldExists = false;
             GlobalStateDTO.ClientNameExists = false;
 
-            if (request.Fields == null || !request.Fields.Any())
+            IActionResult initialValidationResult = _validateFields.ValidateInitialRequest(request);
+
+            if (initialValidationResult is not OkResult)
             {
-                return _responseHandler.HandleError("Must send at least one Field.", HttpStatusCode.BadRequest);
+                return initialValidationResult;
             }
 
-            foreach (FieldSaveFormRequestDTO field in request.Fields)
+            List<FieldErrorDTO> errors = new();
+            List<string> unmappedFields = new(); // List of fields not mapped in the database
+            List<string> duplicatedFields = new(); // List of duplicate fields in the request
+
+            // Dictionary to count the frequency of each field sent in the JSON
+            Dictionary<string, int> fieldOccurrences = new(StringComparer.OrdinalIgnoreCase);
+
+            foreach (FieldSaveFormRequestDTO field in request.Fields!)
             {
                 if (!GlobalStateDTO.HoneypotFieldExists || !GlobalStateDTO.ClientNameExists)
                 {
                     // Honeypot validation
-                    IActionResult honeypotValidationResult = _validateFields.ValidateField(field, "Honeypot");
-
-                    if (honeypotValidationResult is not OkResult)
-                    {
-                        return honeypotValidationResult;
-                    }
+                    _validateFields.AddErrorIfNotOk(_validateFields.ValidateField(field, "Honeypot"), errors);
 
                     // ClientName validation
-                    IActionResult clientValidationResult = _validateFields.ValidateField(field, "ClientName");
-
-                    if (clientValidationResult is not OkResult)
-                    {
-                        return clientValidationResult;
-                    }
+                    _validateFields.AddErrorIfNotOk(_validateFields.ValidateField(field, "ClientName"), errors);
                 }
 
                 FormFieldsModel? matchingField = formFields.FirstOrDefault(f => f.Name != null && f.Name.Equals(field.Name, StringComparison.OrdinalIgnoreCase));
 
                 if (matchingField != null)
                 {
-                    IActionResult lengthValidationResult = _validateFields.ValidateFieldLength(field, matchingField);
-                    if (lengthValidationResult is not OkResult)
-                    {
-                        return lengthValidationResult;
-                    }
+                    _validateFields.AddErrorIfNotOk(_validateFields.ValidateFieldLength(field, matchingField), errors);
 
                     // Apply the mask if it exists
                     string fieldValue = field.Value ?? "";
@@ -72,48 +69,52 @@ namespace ApiElecateProspectsForm.Utils
                     if (!string.IsNullOrEmpty(field.Name))
                     {
                         prospectData[field.Name] = fieldValue;  // Assign the masked value
+
+                        // Count the occurrences of each field
+                        fieldOccurrences[field.Name] = fieldOccurrences.TryGetValue(field.Name, out int value) ? ++value : 1;
+
+                        if (matchingField != null)
+                        {
+                            prospectData[field.Name] = field.Value ?? ""; // Dynamically assign the value
+                        }
+                        else
+                        {
+                            unmappedFields.Add(field.Name); // Add the unmapped field to the list
+                        }
                     }
                 }
             }
 
             // Check if honeypot field exists
-            IActionResult honeypotFieldExistsResult = _validateFields.ValidateHoneypotFieldExists();
-            if (honeypotFieldExistsResult is not OkResult)
-            {
-                return honeypotFieldExistsResult;
-            }
+            _validateFields.AddErrorIfNotOk(_validateFields.ValidateHoneypotFieldExists(), errors);
 
             // Check if ClientName field exists
-            IActionResult clientNameFieldExistsResult = _validateFields.ValidateClientNameFieldExists();
-            if (clientNameFieldExistsResult is not OkResult)
-            {
-                return clientNameFieldExistsResult;
-            }
+            _validateFields.AddErrorIfNotOk(_validateFields.ValidateClientNameFieldExists(), errors);
+
+            // Validate unmapped and duplicated fields
+            _validateFields.AddErrorIfNotOk(_validateFields.ValidateUnmappedAndDuplicatedFields(fieldOccurrences, unmappedFields), errors);
 
             // Check if any valid fields were found to insert
-            IActionResult prospectDataValidationResult = _validateFields.ValidateProspectData(prospectData);
-            if (prospectDataValidationResult is not OkResult)
-            {
-                return prospectDataValidationResult;
-            }
-
-
-            foreach ((KeyValuePair<string, object> entry, System.Reflection.PropertyInfo property) in
-            // Map the dictionary to the ProspectModel properties
-            from KeyValuePair<string, object> entry in prospectData
-            let property = typeof(ProspectModel).GetProperty(entry.Key,
-                                System.Reflection.BindingFlags.IgnoreCase |
-                                System.Reflection.BindingFlags.Public |
-                                System.Reflection.BindingFlags.Instance)
-            where property != null && property.CanWrite
-            select (entry, property))
-            {
-                property.SetValue(prospect, Convert.ChangeType(entry.Value, property.PropertyType));
-            }
+            _validateFields.AddErrorIfNotOk(_validateFields.ValidateProspectData(prospectData), errors);
 
             // Validate the prospect after mapping
-            IActionResult validateProspectResult = _validateFields.ValidateProspect(prospect);
-            return validateProspectResult is OkResult ? new OkObjectResult(prospect) : (object)validateProspectResult;
+            _validateFields.AddErrorIfNotOk(_validateFields.ValidateProspect(prospect), errors);
+
+            if (errors.Count > 0)
+            {
+                return _responseHandler.HandleError("Validation errors occurred",
+                    HttpStatusCode.BadRequest,
+                    new Exception(JsonSerializer.Serialize(errors)),
+                    true,
+                    errors);
+            }
+
+            return _responseHandler.HandleSuccess("Validation successful");
+        }
+
+        public object MapRequestToProspect(RequestsDTO request, List<FormFieldsModel> formFields, IMaskFormatter maskFormatter)
+        {
+            throw new NotImplementedException();
         }
     }
 }

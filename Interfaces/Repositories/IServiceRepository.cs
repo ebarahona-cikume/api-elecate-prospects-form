@@ -1,6 +1,6 @@
 ﻿using ApiElecateProspectsForm.Models;
 
-namespace ApiElecateProspectsForm.Interfaces
+namespace ApiElecateProspectsForm.Interfaces.Repositories
 {
     public interface IServiceRepository
     {

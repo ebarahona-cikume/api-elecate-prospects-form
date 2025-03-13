@@ -1,5 +1,5 @@
 ﻿using ApiElecateProspectsForm.Context;
-using ApiElecateProspectsForm.Interfaces;
+using ApiElecateProspectsForm.Interfaces.Repositories;
 using ApiElecateProspectsForm.Models;
 
 namespace ApiElecateProspectsForm.Repositories

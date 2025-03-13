@@ -6,6 +6,7 @@ using ApiElecateProspectsForm.Context;
 using ApiElecateProspectsForm.Utils;
 using ApiElecateProspectsForm.Controllers;
 using ApiElecateProspectsForm.Interfaces.FormFieldsGenerators;
+using ApiElecateProspectsForm.Interfaces.Repositories;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 

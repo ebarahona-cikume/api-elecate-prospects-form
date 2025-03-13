@@ -1,4 +1,5 @@
 ﻿using ApiElecateProspectsForm.DTOs;
+using ApiElecateProspectsForm.DTOs.Errors;
 using ApiElecateProspectsForm.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
@@ -23,7 +24,7 @@ namespace ApiElecateProspectsForm.Utils
         {
             if (isArrayErrorMessage && errors != null)
             {
-                return CreateResponse(new ArrayErrorMessageResponseDTO
+                return CreateResponse(new FormFieldErrorMessagesResponseDTO
                 {
                     Status = statusCode,
                     Title = GetTitle(statusCode),
@@ -39,14 +40,14 @@ namespace ApiElecateProspectsForm.Utils
             }, statusCode);
         }
 
-        private IActionResult CreateResponse(object response, HttpStatusCode statusCode)
+        private static IActionResult CreateResponse(object response, HttpStatusCode statusCode)
         {
             return statusCode == HttpStatusCode.BadRequest
                 ? new BadRequestObjectResult(response)
                 : new ObjectResult(response) { StatusCode = (int)statusCode };
         }
 
-        private string GetTitle(HttpStatusCode statusCode)
+        private static string GetTitle(HttpStatusCode statusCode)
         {
             return statusCode == HttpStatusCode.BadRequest ? "Bad Request" : "Internal Server Error";
         }

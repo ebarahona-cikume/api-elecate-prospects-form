@@ -1,4 +1,4 @@
-﻿using ApiElecateProspectsForm.DTOs;
+﻿using ApiElecateProspectsForm.DTOs.Errors;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
