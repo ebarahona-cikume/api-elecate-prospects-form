@@ -6,10 +6,11 @@ using ApiElecateProspectsForm.Utils;
 using ApiElecateProspectsForm.Controllers;
 using ApiElecateProspectsForm.Interfaces.Repositories;
 using ApiElecateProspectsForm.Interfaces;
+using ApiElecateProspectsForm.DTOs;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-// Configurar la carga de archivos de configuración
+// Configure the loading of configuration files
 builder.Configuration
     .SetBasePath(Directory.GetCurrentDirectory())
     .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
@@ -47,6 +48,9 @@ builder.Services.AddScoped<IResponseHandler, ResponseHandler>();
 // Register other necessary services
 builder.Services.AddScoped<IValidateFields, ValidateFields>();
 builder.Services.AddScoped<IProspectMapper, ProspectMapper>();
+
+// Register FieldNamesConfigDTO
+builder.Services.Configure<FieldNamesConfigDTO>(builder.Configuration.GetSection("FieldNames"));
 
 builder.Services.AddCors(options =>
 {
