@@ -6,11 +6,11 @@ namespace ApiElecateProspectsForm.Repositories
 {
     public class ServiceRepository(DbContextFactory contextFactory) : IServiceRepository
     {
-        private readonly DbContextFactory _contextFactory = contextFactory;
+        private readonly DbContextFactory _dbContextFactory = contextFactory;
 
         public IQueryable<ServiceModel> GetAllServices()
         {
-            using var context = _contextFactory.CreateElecateDbContext();
+            using ElecateDbContext context = _dbContextFactory.CreateElecateDbContext();
             return context.Service_Tbl.AsQueryable();
         }
     }

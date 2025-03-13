@@ -12,7 +12,7 @@ namespace ApiElecateProspectsForm.Controllers
         [HttpGet]
         public async Task<IActionResult> GetMaritalStatuses()
         {
-            var maritalStatuses = await _repository.GetAllMaritalStatusesAsync();
+            IEnumerable<Models.MaritalStatusModel> maritalStatuses = await _repository.GetAllMaritalStatusesAsync();
             return Ok(maritalStatuses);
         }
     }

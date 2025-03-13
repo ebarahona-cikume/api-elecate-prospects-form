@@ -1,24 +1,32 @@
-﻿using ApiElecateProspectsForm.DTOs;
+﻿
 using Microsoft.AspNetCore.Mvc;
 using System.Text;
-using ApiElecateProspectsForm.Utils;
+using System.Net;
 using ApiElecateProspectsForm.Services.FormFieldsGenerators;
 using ApiElecateProspectsForm.Models;
 using ApiElecateProspectsForm.Interfaces;
-using System.Net;
+using ApiElecateProspectsForm.DTOs;
 using ApiElecateProspectsForm.Context;
-using Microsoft.EntityFrameworkCore;
+using ApiElecateProspectsForm.Interfaces.FormFieldsGenerators;
 
 namespace ApiElecateProspectsForm.Controllers
 {
     [ApiController]
     [Route("elecate/prospects")]
-    public class ProspectsFormController(IFormFieldsRepository formFieldsRepository, DbContextFactory dbContextFactory) : ControllerBase
+    public class ProspectsFormController(
+        IFormFieldsRepository formFieldsRepository,
+        IResponseHandler responseHandler,
+        IDbContextFactory dbContextFactory,
+        IMaskFormatter maskFormatter,
+        IValidateFields validateFields,
+        IProspectMapper prospectMapper) : ControllerBase
     {
-        private readonly DbContextFactory _dbContextFactory = dbContextFactory;
-        private readonly ResponseHandler _responseHandler = new();
-
-        public DbContextFactory DbContextFactory => _dbContextFactory;
+        private readonly IFormFieldsRepository _formFieldsRepository = formFieldsRepository;
+        private readonly IResponseHandler _responseHandler = responseHandler;
+        private readonly IDbContextFactory _dbContextFactory = dbContextFactory;
+        private readonly IMaskFormatter _maskFormatter = maskFormatter;
+        private readonly IValidateFields _validateFields = validateFields;
+        private readonly IProspectMapper _prospectMapper = prospectMapper;
 
         [HttpPost("generate/{id}")]
         public async Task<IActionResult> GenerateHtmlForm(
@@ -27,21 +35,24 @@ namespace ApiElecateProspectsForm.Controllers
             [FromServices] DbContextFactory dbContextFactory,
             int id)
         {
-            IActionResult validationResult = ValidateFields.Validate(request);
+            // Validate the fields in the request
+            IActionResult validationResult = _validateFields.ValidateElecate(request);
 
             if (validationResult is BadRequestObjectResult)
             {
                 return validationResult;
             }
 
+            // Initialize the HTML form builder
             StringBuilder htmlBuilder = new();
             htmlBuilder.Append("<form>\n");
 
-            //Add hidden field honeypot validation
+            // Add hidden field for honeypot validation
             htmlBuilder.Append("<input type='hidden' id='honeypot' name='honeypot' value=''>\n");
 
-            List<FormFieldsModel> fieldsToInsert = [];
+            List<FormFieldsModel> fieldsToInsert = new();
 
+            // Generate HTML for each field in the request
             foreach (FieldGenerateFormRequestDTO? field in request.Fields)
             {
                 if (field != null)
@@ -51,11 +62,12 @@ namespace ApiElecateProspectsForm.Controllers
                         fieldType = FieldType.Text;
                     }
 
+                    // Get the appropriate field generator and generate the field HTML
                     Interfaces.FormFieldsGenerators.IFormFieldGenerator generator = generatorFactory.GetGenerator(fieldType);
                     string fieldHtml = await generator.GenerateComponent(field);
                     htmlBuilder.Append(fieldHtml);
 
-                    // Create the entity for saving fields in DB
+                    // Create the entity for saving fields in the database
                     FormFieldsModel newField = new()
                     {
                         IdForm = id,
@@ -74,12 +86,12 @@ namespace ApiElecateProspectsForm.Controllers
 
             htmlBuilder.Append("</form>");
 
-            // Save fields in DB
+            // Save fields in the database
             if (fieldsToInsert.Count != 0)
             {
                 try
                 {
-                    await formFieldsRepository.SyncFormFieldsAsync(id, fieldsToInsert);
+                    await _formFieldsRepository.SyncFormFieldsAsync(id, fieldsToInsert);
                 }
                 catch (Exception ex)
                 {
@@ -100,102 +112,35 @@ namespace ApiElecateProspectsForm.Controllers
 
             try
             {
-                // 1. Get the form fields from Elecate_DB
-                List<FormFieldsModel> formFields;
-                await using (ElecateDbContext elecateDbContext = _dbContextFactory.CreateElecateDbContext())
-                {
-                    formFields = await elecateDbContext.FormFields_Tbl
-                        .Where(f => f.IdForm == id && !f.IsDeleted)
-                        .ToListAsync();
-                }
-
+                List<FormFieldsModel> formFields = await _formFieldsRepository.GetFormFieldsAsync(id);
                 if (formFields.Count == 0)
                 {
                     return _responseHandler.HandleError("No fields found for the given form ID.", HttpStatusCode.BadRequest);
                 }
 
-                // 2. Get the client database context dynamically
                 await using ProspectDbContext dbContext = _dbContextFactory.CreateProspectDbContext(id.ToString());
+                object prospectResult = _prospectMapper.MapRequestToProspect(request, formFields, _maskFormatter);
+                OkObjectResult? okResult = prospectResult as OkObjectResult;
 
-                // 3. Map the request fields to the corresponding columns
-                Dictionary<string, object> prospect = [];
-                bool honeypotFieldExists = false;
-                bool clientNameExists = false;
-
-                foreach (FieldSaveFormRequestDTO field in request.Fields)
+                if (okResult == null && prospectResult is IActionResult errorResult)
                 {
-                    // Honeypot validation
-                    if (!string.IsNullOrEmpty(field.Name) && field.Name.Equals("Honeypot", StringComparison.OrdinalIgnoreCase))
-                    {
-                        honeypotFieldExists = true;
-                        if (!string.IsNullOrEmpty(field.Value))
-                        {
-                            return _responseHandler.HandleError("Bot detected.", HttpStatusCode.BadRequest);
-                        }
-                    }
-
-                    //ClientName validation
-                    if (!string.IsNullOrEmpty(field.Name) && field.Name.Equals("ClientName", StringComparison.OrdinalIgnoreCase))
-                    {
-                        clientNameExists = true;
-                    }
-
-                    if (!string.IsNullOrEmpty(field.Name))
-                    {
-                        FormFieldsModel? matchingField = formFields
-                            .FirstOrDefault(f => f.Name != null && f.Name.Equals(field.Name, StringComparison.OrdinalIgnoreCase));
-
-                        if (matchingField != null)
-                        {
-                            prospect[field.Name] = field.Value ?? ""; // Assign the value dynamically
-                        }
-                    }
+                    return errorResult;
                 }
 
-                //  Honeypot field exists.
-                if (!honeypotFieldExists)
-                {
-                    return _responseHandler.HandleError("Honeypot field is missing.", HttpStatusCode.BadRequest);
-                }
+                ProspectModel? prospect = okResult?.Value as ProspectModel;
+                dbContext.Prospect.Add(prospect!);
 
-                //  ClientName field is missing.
-                if (!clientNameExists)
-                {
-                    return _responseHandler.HandleError("ClientName field is missing.", HttpStatusCode.BadRequest);
-                }
-
-                // All Prospects fiels are missing.
-                if (prospect.Count == 0)
-                {
-                    return _responseHandler.HandleError("No valid fields found to insert.", HttpStatusCode.BadRequest);
-                }
-
-                // 4. Insert the new record dynamically into the Prospects table
-                ProspectModel prospectEntity = new();
-
-                foreach (KeyValuePair<string, object> entry in prospect)
-                {
-                    // Obtener todas las propiedades de ProspectModel
-                    System.Reflection.PropertyInfo[] properties = typeof(ProspectModel).GetProperties();
-
-                    // Buscar la propiedad que coincida con el nombre, ignorando mayúsculas y minúsculas
-                    System.Reflection.PropertyInfo? property = properties.FirstOrDefault(p => p.Name.Equals(entry.Key, StringComparison.OrdinalIgnoreCase));
-
-                    if (property != null && property.CanWrite)
-                    {
-                        property.SetValue(prospectEntity, Convert.ChangeType(entry.Value, property.PropertyType));
-                    }
-                }
-
-                dbContext.Prospect.Add(prospectEntity);
                 await dbContext.SaveChangesAsync();
 
                 return _responseHandler.HandleSuccess("Data saved successfully.");
             }
+            catch (ArgumentException ex)
+            {
+                return _responseHandler.HandleError(ex.Message, HttpStatusCode.BadRequest);
+            }
             catch (Exception ex)
             {
                 string errorMessage = "An error occurred while saving data.";
-
                 if (ex.InnerException != null)
                 {
                     errorMessage += $" Inner exception: {ex.InnerException.Message}";

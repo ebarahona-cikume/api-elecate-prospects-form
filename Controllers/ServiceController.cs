@@ -12,7 +12,7 @@ namespace ApiElecateProspectsForm.Controllers
         [HttpGet]
         public IActionResult GetServices()
         {
-            var services = _repository.GetAllServices();
+            IQueryable<Models.ServiceModel> services = _repository.GetAllServices();
             return Ok(services);
         }
     }

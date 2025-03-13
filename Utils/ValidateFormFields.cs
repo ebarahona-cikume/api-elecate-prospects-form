@@ -1,4 +1,5 @@
 ﻿using ApiElecateProspectsForm.DTOs;
+using ApiElecateProspectsForm.Interfaces;
 using ApiElecateProspectsForm.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
@@ -7,27 +8,23 @@ namespace ApiElecateProspectsForm.Utils
 {
     public static class ValidateFormFields
     {
-        public static IActionResult ValidateFormFilds(IQueryable<FormFieldsModel> formFields)
+        public static IActionResult ValidateFormFilds(IQueryable<FormFieldsModel> formFields, 
+            IResponseHandler responseHandler)
         {
             if (formFields == null || !formFields.Any())
             {
-                StringErrorMessageResponseDTO errorResponse = new()
-                {
-                    Status = HttpStatusCode.BadRequest,
-                    Title = "Bad Request",
-                    Message = "You must provide at least one field"
-                };
-
-                return new BadRequestObjectResult(errorResponse);
+                return responseHandler.HandleError("You must provide at least one field", HttpStatusCode.BadRequest);
             }
 
             List<FieldErrorDTO> errors = [];
 
-            foreach (var field in formFields)
+            foreach (FormFieldsModel field in formFields)
             {
                 List<string> fieldErrors = [];
 
-                if (field.Type == "Text" && field.Size.HasValue && field.Name?.Length > field.Size.Value)
+                if (field.Type == "Text"
+                    && field.Size.HasValue
+                    && field.Name?.Length > field.Size.Value)
                 {
                     fieldErrors.Add($"The field '{field.Name}' exceeds the maximum size of {field.Size.Value} characters.");
                 }
@@ -44,14 +41,10 @@ namespace ApiElecateProspectsForm.Utils
 
             if (errors.Count > 0)
             {
-                ArrayErrorMessageResponseDTO errorResponse = new()
-                {
-                    Status = HttpStatusCode.BadRequest,
-                    Title = "Bad Request",
-                    Errors = errors
-                };
-
-                return new BadRequestObjectResult(errorResponse);
+                return responseHandler.HandleError("Validation errors occurred", 
+                    HttpStatusCode.BadRequest, 
+                    isArrayErrorMessage: true, 
+                    errors: errors);
             }
 
             return new OkResult();

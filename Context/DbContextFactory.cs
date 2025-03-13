@@ -1,8 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using ApiElecateProspectsForm.Interfaces;
 
 namespace ApiElecateProspectsForm.Context
 {
-    public class DbContextFactory(IConfiguration configuration)
+    public class DbContextFactory(IConfiguration configuration) : IDbContextFactory
     {
         private readonly IConfiguration _configuration = configuration;
 

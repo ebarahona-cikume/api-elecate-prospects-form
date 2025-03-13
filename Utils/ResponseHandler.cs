@@ -1,19 +1,20 @@
 ﻿using ApiElecateProspectsForm.DTOs;
+using ApiElecateProspectsForm.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
 namespace ApiElecateProspectsForm.Utils
 {
-    public class ResponseHandler
+    public class ResponseHandler : IResponseHandler
     {
         public IActionResult HandleSuccess(string message)
         {
-            return new OkObjectResult(new StringSuccessMessageResponseDTO
+            return CreateResponse(new StringSuccessMessageResponseDTO
             {
                 Status = HttpStatusCode.OK,
                 Title = "Success",
                 Message = message
-            });
+            }, HttpStatusCode.OK);
         }
 
         public IActionResult HandleError(string message,
@@ -22,43 +23,32 @@ namespace ApiElecateProspectsForm.Utils
         {
             if (isArrayErrorMessage && errors != null)
             {
-                var arrayErrorResponse = new ArrayErrorMessageResponseDTO
+                return CreateResponse(new ArrayErrorMessageResponseDTO
                 {
                     Status = statusCode,
-                    Title = statusCode == HttpStatusCode.BadRequest ? "Bad Request" : "Internal Server Error",
+                    Title = GetTitle(statusCode),
                     Errors = errors
-                };
-
-                if (statusCode == HttpStatusCode.BadRequest)
-                {
-                    return new BadRequestObjectResult(arrayErrorResponse);
-                }
-
-                return new ObjectResult(arrayErrorResponse)
-                {
-                    StatusCode = (int)statusCode
-                };
+                }, statusCode);
             }
-            else
+
+            return CreateResponse(new StringErrorMessageResponseDTO
             {
-                var errorResponse = new StringErrorMessageResponseDTO
-                {
-                    Status = statusCode,
-                    Title = statusCode == HttpStatusCode.BadRequest ? "Bad Request" : "Internal Server Error",
-                    Message = message // Use the provided message instead of ex.Message
-                };
-
-                if (statusCode == HttpStatusCode.BadRequest)
-                {
-                    return new BadRequestObjectResult(errorResponse);
-                }
-
-                return new ObjectResult(errorResponse)
-                {
-                    StatusCode = (int)statusCode
-                };
-            }
+                Status = statusCode,
+                Title = GetTitle(statusCode),
+                Message = message
+            }, statusCode);
         }
 
+        private IActionResult CreateResponse(object response, HttpStatusCode statusCode)
+        {
+            return statusCode == HttpStatusCode.BadRequest
+                ? new BadRequestObjectResult(response)
+                : new ObjectResult(response) { StatusCode = (int)statusCode };
+        }
+
+        private string GetTitle(HttpStatusCode statusCode)
+        {
+            return statusCode == HttpStatusCode.BadRequest ? "Bad Request" : "Internal Server Error";
+        }
     }
 }
