@@ -11,16 +11,16 @@ namespace ApiElecateProspectsForm.Interfaces
 
         IActionResult ValidateClientNameHoneypotFieldsExist(SaveFormDataRequestDTO request);
 
-        IActionResult ValidateFieldLength(FieldSaveFormRequestDTO field, FormFieldsModel matchingField);
+        void ValidateFieldLength(FieldSaveFormRequestDTO field, FormFieldsModel matchingField, int index, List<FieldErrorDTO> errors);
 
         IActionResult ValidateProspectData(Dictionary<string, object> prospectData);
 
         IActionResult ValidateProspect(ProspectModel prospect);
 
-        IActionResult ValidateUnmappedAndDuplicatedFields(Dictionary<string, int> fieldOccurrences, List<string> unmappedFields);
+        IActionResult ValidateUnmappedAndDuplicatedFields(List<FieldErrorDTO> repeatedFields, List<FieldErrorDTO> unmappedFields);
 
         IActionResult ValidateInitialRequest(SaveFormDataRequestDTO request);
 
-        void AddErrorIfNotOk(IActionResult validationResult, List<FieldErrorDTO> errors);
+        void AddErrorIfNotOk(IActionResult validationResult, List<FieldErrorDTO> errors, string index = "N/A");
     }
 }
