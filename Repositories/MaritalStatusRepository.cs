@@ -7,18 +7,18 @@ namespace ApiElecateProspectsForm.Repositories
 {
     public class MaritalStatusRepository : IMaritalStatusRepository
     {
-        private readonly DbContextFactory _contextFactory;
+        private readonly DbContextFactory _dbContextFactory;
 
         public MaritalStatusRepository(DbContextFactory contextFactory)
         {
-            _contextFactory = contextFactory;
+            _dbContextFactory = contextFactory;
         }
 
         public async Task<IEnumerable<MaritalStatusModel>> GetAllMaritalStatusesAsync()
         {
             try
             {
-                using var context = _contextFactory.CreateElecateDbContext();
+                using ElecateDbContext context = _dbContextFactory.CreateElecateDbContext();
                 return await context.MaritalStatus_Tbl.ToListAsync();
             }
             catch (Exception ex)

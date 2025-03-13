@@ -2,6 +2,9 @@ using ApiElecateProspectsForm.Repositories;
 using ApiElecateProspectsForm.Services.FormFieldsGenerators;
 using ApiElecateProspectsForm.Services.FormComponentsGenerators;
 using ApiElecateProspectsForm.Context;
+using ApiElecateProspectsForm.Utils;
+using ApiElecateProspectsForm.Controllers;
+using ApiElecateProspectsForm.Interfaces.FormFieldsGenerators;
 using ApiElecateProspectsForm.Interfaces.Repositories;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -20,11 +23,13 @@ builder.Services.AddSwaggerGen();
 
 // Configure Entity Framework and the database connection
 builder.Services.AddSingleton<DbContextFactory>();
+builder.Services.AddScoped<IDbContextFactory, DbContextFactory>();
 
 // Register the repository
 builder.Services.AddScoped<IMaritalStatusRepository, MaritalStatusRepository>();
 builder.Services.AddScoped<IServiceRepository, ServiceRepository>();
 builder.Services.AddScoped<IFormFieldsRepository, FormFieldsRepository>();
+builder.Services.AddScoped<IMaskFormatter, MaskFormatter>();
 
 // Register the Form Fields Factory
 builder.Services.AddSingleton<TextFieldGenerator>();
@@ -36,6 +41,13 @@ builder.Services.AddScoped<FieldGeneratorFactory>();
 // Register HttpClient
 builder.Services.AddHttpClient();
 
+// Register IResponseHandler
+builder.Services.AddScoped<IResponseHandler, ResponseHandler>();
+
+// Register other necessary services
+builder.Services.AddScoped<IValidateFields, ValidateFields>();
+builder.Services.AddScoped<IProspectMapper, ProspectMapper>();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll",
@@ -46,7 +58,6 @@ builder.Services.AddCors(options =>
                    .AllowAnyHeader();
         });
 });
-
 
 WebApplication app = builder.Build();
 

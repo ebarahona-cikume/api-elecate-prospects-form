@@ -1,5 +1,5 @@
 ﻿using ApiElecateProspectsForm.Context;
-using ApiElecateProspectsForm.Interfaces.Repositories;
+using ApiElecateProspectsForm.Interfaces.FormFieldsGenerators;
 using ApiElecateProspectsForm.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,25 +7,33 @@ namespace ApiElecateProspectsForm.Repositories
 {
     public class FormFieldsRepository(DbContextFactory contextFactory) : IFormFieldsRepository
     {
-        private readonly DbContextFactory _contextFactory = contextFactory;
+        private readonly DbContextFactory _dbContextFactory = contextFactory;
 
         public IQueryable<FormFieldsModel> GetFieldsByFormId(int Id)
         {
-            ElecateDbContext dbContext = _contextFactory.CreateElecateDbContext(); // Create a new dynamic DbContext
+            ElecateDbContext dbContext = _dbContextFactory.CreateElecateDbContext(); // Create a new dynamic DbContext
 
             return dbContext.FormFields_Tbl
                 .Where(f => f.IdForm == Id && !f.IsDeleted); // Exclude logically deleted records
+        }
+
+        public async Task<List<FormFieldsModel>> GetFormFieldsAsync(int id)
+        {
+            await using ElecateDbContext elecateDbContext = _dbContextFactory.CreateElecateDbContext();
+            return await elecateDbContext.FormFields_Tbl
+                .Where(f => f.IdForm == id && !f.IsDeleted)
+                .ToListAsync();
         }
 
         public async Task SyncFormFieldsAsync(int formId, IEnumerable<FormFieldsModel> newFields)
         {
             ArgumentNullException.ThrowIfNull(newFields);
 
-            Microsoft.EntityFrameworkCore.Storage.IExecutionStrategy executionStrategy = _contextFactory.CreateElecateDbContext().Database.CreateExecutionStrategy();
+            Microsoft.EntityFrameworkCore.Storage.IExecutionStrategy executionStrategy = _dbContextFactory.CreateElecateDbContext().Database.CreateExecutionStrategy();
 
             await executionStrategy.ExecuteAsync(async () =>
             {
-                await using ElecateDbContext dbContext = _contextFactory.CreateElecateDbContext(); // Create a new instance
+                await using ElecateDbContext dbContext = _dbContextFactory.CreateElecateDbContext(); // Create a new instance
                 await using Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction = await dbContext.Database.BeginTransactionAsync();
 
                 try

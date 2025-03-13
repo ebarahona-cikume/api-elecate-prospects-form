@@ -31,7 +31,7 @@ namespace ApiElecateProspectsForm.Services.FormComponentsGenerators
 
             StringBuilder htmlBuilder = new StringBuilder($"<select id=\"{field.Name}\" name=\"{field.Name}\">\n");
 
-            foreach (var status in maritalStatuses)
+            foreach (MaritalStatusModel status in maritalStatuses)
             {
                 htmlBuilder.Append($"<option value=\"{status.Id}\">{status.MaritalStatus?.Trim()}</option>\n");
             }
