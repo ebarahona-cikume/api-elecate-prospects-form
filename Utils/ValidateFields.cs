@@ -104,7 +104,7 @@ namespace ApiElecateProspectsForm.Utils
                 {
                     errors.Add(new FieldErrorDTO
                     {
-                        Index = i,
+                        Index = i.ToString(),
                         FieldErrors = fieldErrors
                     });
                 }
@@ -143,13 +143,34 @@ namespace ApiElecateProspectsForm.Utils
             return new OkResult();
         }
 
-        public IActionResult ValidateFieldLength(FieldSaveFormRequestDTO field, FormFieldsModel matchingField)
+        public void ValidateFieldLength(FieldSaveFormRequestDTO field, FormFieldsModel matchingField, int index, List<FieldErrorDTO> errors)
         {
-            if (matchingField.Type == "Text" && matchingField.Size > 0 && field.Value?.Length > matchingField.Size)
+            if (matchingField.Type == "Text")
             {
-                return _responseHandler.HandleError($"The field '{field.Name}' exceeds the maximum length of {matchingField.Size}.", HttpStatusCode.BadRequest);
+                string message = string.Empty;
+
+                if (matchingField.Size > 0 && field.Value?.Length > matchingField.Size)
+                {
+                    message = $"The field '{field.Name}' exceeds the maximum length of {matchingField.Size}.";
+                }
+
+                if (!(field.Value?.Length > 0))
+                {
+                    message = $"The field '{field.Name}' cannot be empty";
+                }
+
+                if (message.Length > 0)
+                {
+                    errors.Add(new FieldErrorDTO
+                    {
+                        Index = index.ToString(),
+                        FieldErrors =
+                        [
+                            message
+                        ]
+                    });
+                }
             }
-            return new OkResult();
         }
 
         public IActionResult ValidateHoneypotFieldExists()
@@ -189,32 +210,30 @@ namespace ApiElecateProspectsForm.Utils
             return new OkResult();
         }
 
-        public IActionResult ValidateUnmappedAndDuplicatedFields(Dictionary<string, int> fieldOccurrences,
-                                                                 List<string> unmappedFields)
+        public IActionResult ValidateUnmappedAndDuplicatedFields(List<FieldErrorDTO> repeatedFields, List<FieldErrorDTO> unmappedFields)
         {
-            List<string> duplicatedFields = [.. fieldOccurrences
-                .Where(kvp => kvp.Value > 1)
-                .Select(kvp => kvp.Key)];
+            List<FieldErrorDTO> errorList = [];
 
-            if (unmappedFields.Count <= 0 && duplicatedFields.Count <= 0)
+            if (unmappedFields.Count <= 0 && repeatedFields.Count <= 0)
             {
                 return new OkResult();
             }
 
-            List<string> errorMessages = [];
-
-            if (unmappedFields.Count > 0)
+            // Agregar errores de campos no mapeados
+            foreach (FieldErrorDTO field in unmappedFields)
             {
-                errorMessages.Add($"The following fields do not have a mapping in the database: {string.Join(", ", unmappedFields)}.");
+                errorList.Add(field);
             }
 
-            if (duplicatedFields.Count > 0)
+            // Agregar errores de campos duplicados
+            foreach (FieldErrorDTO field in repeatedFields)
             {
-                errorMessages.Add($"The following fields were sent multiple times: {string.Join(", ", duplicatedFields)}.");
+                errorList.Add(field);
             }
 
-            return _responseHandler.HandleError(string.Join(" ", errorMessages), HttpStatusCode.BadRequest);
+            return _responseHandler.HandleError("", HttpStatusCode.BadRequest, null, true, errorList);
         }
+
         public IActionResult ValidateInitialRequest(SaveFormDataRequestDTO request)
         {
             if (request == null || request.Fields == null || request.Fields.Count == 0)
@@ -225,34 +244,35 @@ namespace ApiElecateProspectsForm.Utils
             return new OkResult();
         }
 
-        public void AddErrorIfNotOk(IActionResult validationResult, List<FieldErrorDTO> errors)
+        public void AddErrorIfNotOk(IActionResult validationResult, List<FieldErrorDTO> errors, string index = "N/A")
         {
             if (validationResult is BadRequestObjectResult badRequestResult)
             {
-                if (badRequestResult.Value is StringErrorMessageResponseDTO stringError)
+                switch (badRequestResult.Value)
                 {
-                    errors.Add(new FieldErrorDTO
-                    {
-                        Index = -1,
-                        FieldErrors = [stringError.Message]
-                    });
-                }
-                else if (badRequestResult.Value is List<string> generalErrors)
-                {
-                    errors.Add(new FieldErrorDTO
-                    {
-                        Index = -1,
-                        FieldErrors = generalErrors
-                    });
-                }
-                else
-                {
-                    // Caso genérico si el formato no es el esperado
-                    errors.Add(new FieldErrorDTO
-                    {
-                        Index = -1,
-                        FieldErrors = [badRequestResult.Value?.ToString() ?? "Unknown error"]
-                    });
+                    case StringErrorMessageResponseDTO stringError:
+                        errors.Add(new FieldErrorDTO
+                        {
+                            Index = index, // Se recibe como parámetro para ser más flexible
+                            FieldErrors = [stringError.Message]
+                        });
+                        break;
+
+                    case List<string> generalErrors:
+                        errors.Add(new FieldErrorDTO
+                        {
+                            Index = index,
+                            FieldErrors = generalErrors
+                        });
+                        break;
+
+                    default:
+                        errors.Add(new FieldErrorDTO
+                        {
+                            Index = index,
+                            FieldErrors = [badRequestResult.Value?.ToString() ?? "Unknown error"]
+                        });
+                        break;
                 }
             }
         }

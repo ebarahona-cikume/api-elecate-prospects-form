@@ -27,22 +27,25 @@ namespace ApiElecateProspectsForm.Utils
             GlobalStateDTO.ClientNameExists = false;
 
             List<FieldErrorDTO> errors = [];
-            List<string> unmappedFields = []; // List of fields not mapped in the database
-            List<string> duplicatedFields = []; // List of duplicate fields in the request
+            List<FieldErrorDTO> unmappedFields = []; // Campos no mapeados en la BD
+            List<FieldErrorDTO> duplicatedFields = []; // Campos duplicados en la petición
 
-            // Dictionary to count the frequency of each field sent in the JSON
-            Dictionary<string, int> fieldOccurrences = new(StringComparer.OrdinalIgnoreCase);
+            // Diccionario para contar ocurrencias y almacenar índices de cada campo
+            Dictionary<string, List<int>> fieldOccurrences = new(StringComparer.OrdinalIgnoreCase);
 
-            foreach (FieldSaveFormRequestDTO field in request.Fields!)
+            for (int i = 0; i < request.Fields!.Count; i++)
             {
+                FieldSaveFormRequestDTO field = request.Fields[i];
 
-                FormFieldsModel? matchingField = formFields.FirstOrDefault(f => f.Name != null && f.Name.Equals(field.Name, StringComparison.OrdinalIgnoreCase));
+                FormFieldsModel? matchingField = formFields
+                    .FirstOrDefault(f => f.Name != null && f.Name.Equals(field.Name, StringComparison.OrdinalIgnoreCase));
 
                 if (matchingField != null)
                 {
-                    _validateFields.AddErrorIfNotOk(_validateFields.ValidateFieldLength(field, matchingField), errors);
-
-                    // Apply the mask if it exists
+                    // validamos la longitud del campo
+                    _validateFields.ValidateFieldLength(field, matchingField, i, errors);
+                    
+                    // Aplicar máscara si existe
                     string fieldValue = field.Value ?? "";
 
                     if (!string.IsNullOrEmpty(matchingField.Mask))
@@ -52,31 +55,52 @@ namespace ApiElecateProspectsForm.Utils
 
                     if (!string.IsNullOrEmpty(field.Name))
                     {
-                        prospectData[field.Name] = fieldValue;  // Assign the masked value
+                        prospectData[field.Name] = fieldValue;
 
-                        // Count the occurrences of each field
-                        fieldOccurrences[field.Name] = fieldOccurrences.TryGetValue(field.Name, out int value) ? ++value : 1;
-
-                        if (matchingField != null)
+                        // Guardar la ocurrencia del campo con su índice
+                        if (!fieldOccurrences.TryGetValue(field.Name, out List<int>? value))
                         {
-                            prospectData[field.Name] = field.Value ?? ""; // Dynamically assign the value
+                            fieldOccurrences[field.Name] = [i];
                         }
                         else
                         {
-                            unmappedFields.Add(field.Name); // Add the unmapped field to the list
+                            value.Add(i);
                         }
                     }
                 }
+                else
+                {
+                    // Guardar campo no mapeado con su índice
+                    unmappedFields.Add(new FieldErrorDTO
+                    {
+                        Index = i.ToString(),
+                        FieldErrors = [$"The field '{field.Name}' is not mapped in the database."]
+                    });
+                }
             }
 
-            // Validate unmapped and duplicated fields
-            _validateFields.AddErrorIfNotOk(_validateFields.ValidateUnmappedAndDuplicatedFields(fieldOccurrences, unmappedFields), errors);
+            // Identificar y registrar campos duplicados
+            foreach (var entry in fieldOccurrences)
+            {
+                if (entry.Value.Count > 1) // Si el campo apareció más de una vez
+                {
+                    duplicatedFields.Add(new FieldErrorDTO
+                    {
+                        Index = string.Join(", ", entry.Value), // Convertir los índices en string separados por comas
+                        FieldErrors = [$"The field '{entry.Key}' has been sent multiple times."]
+                    });
+                }
+            }
 
-            // Check if any valid fields were found to insert
-            _validateFields.AddErrorIfNotOk(_validateFields.ValidateProspectData(prospectData), errors);
+            foreach (FieldErrorDTO duplicatedField in duplicatedFields)
+            {
+                errors.Add(duplicatedField);
+            }
 
-            // Validate the prospect after mapping
-            _validateFields.AddErrorIfNotOk(_validateFields.ValidateProspect(prospect), errors);
+            foreach(FieldErrorDTO unmappedField in unmappedFields)
+            {
+                errors.Add(unmappedField);
+            }
 
             if (errors.Count > 0)
             {
