@@ -3,7 +3,6 @@ using ApiElecateProspectsForm.DTOs;
 using ApiElecateProspectsForm.DTOs.Errors;
 using ApiElecateProspectsForm.Interfaces;
 using ApiElecateProspectsForm.Models;
-using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using System.Text.Json;
 
@@ -21,36 +20,21 @@ namespace ApiElecateProspectsForm.Utils
         {
             ProspectModel prospectModel = new();
             ProspectModel prospect = prospectModel;
-            Dictionary<string, object> prospectData = new();
+            Dictionary<string, object> prospectData = [];
 
             // Reset the state of HoneypotFieldExists
             GlobalStateDTO.HoneypotFieldExists = false;
             GlobalStateDTO.ClientNameExists = false;
 
-            IActionResult initialValidationResult = _validateFields.ValidateInitialRequest(request);
-
-            if (initialValidationResult is not OkResult)
-            {
-                return initialValidationResult;
-            }
-
-            List<FieldErrorDTO> errors = new();
-            List<string> unmappedFields = new(); // List of fields not mapped in the database
-            List<string> duplicatedFields = new(); // List of duplicate fields in the request
+            List<FieldErrorDTO> errors = [];
+            List<string> unmappedFields = []; // List of fields not mapped in the database
+            List<string> duplicatedFields = []; // List of duplicate fields in the request
 
             // Dictionary to count the frequency of each field sent in the JSON
             Dictionary<string, int> fieldOccurrences = new(StringComparer.OrdinalIgnoreCase);
 
             foreach (FieldSaveFormRequestDTO field in request.Fields!)
             {
-                if (!GlobalStateDTO.HoneypotFieldExists || !GlobalStateDTO.ClientNameExists)
-                {
-                    // Honeypot validation
-                    _validateFields.AddErrorIfNotOk(_validateFields.ValidateField(field, "Honeypot"), errors);
-
-                    // ClientName validation
-                    _validateFields.AddErrorIfNotOk(_validateFields.ValidateField(field, "ClientName"), errors);
-                }
 
                 FormFieldsModel? matchingField = formFields.FirstOrDefault(f => f.Name != null && f.Name.Equals(field.Name, StringComparison.OrdinalIgnoreCase));
 
@@ -85,12 +69,6 @@ namespace ApiElecateProspectsForm.Utils
                 }
             }
 
-            // Check if honeypot field exists
-            _validateFields.AddErrorIfNotOk(_validateFields.ValidateHoneypotFieldExists(), errors);
-
-            // Check if ClientName field exists
-            _validateFields.AddErrorIfNotOk(_validateFields.ValidateClientNameFieldExists(), errors);
-
             // Validate unmapped and duplicated fields
             _validateFields.AddErrorIfNotOk(_validateFields.ValidateUnmappedAndDuplicatedFields(fieldOccurrences, unmappedFields), errors);
 
@@ -110,11 +88,6 @@ namespace ApiElecateProspectsForm.Utils
             }
 
             return _responseHandler.HandleSuccess("Validation successful");
-        }
-
-        public object MapRequestToProspect(RequestsDTO request, List<FormFieldsModel> formFields, IMaskFormatter maskFormatter)
-        {
-            throw new NotImplementedException();
         }
     }
 }

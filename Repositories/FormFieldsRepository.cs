@@ -1,5 +1,6 @@
 ﻿using ApiElecateProspectsForm.Context;
 using ApiElecateProspectsForm.Interfaces.FormFieldsGenerators;
+using ApiElecateProspectsForm.Interfaces.Repositories;
 using ApiElecateProspectsForm.Models;
 using Microsoft.EntityFrameworkCore;
 

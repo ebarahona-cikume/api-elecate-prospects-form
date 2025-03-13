@@ -7,7 +7,8 @@ using ApiElecateProspectsForm.Models;
 using ApiElecateProspectsForm.Interfaces;
 using ApiElecateProspectsForm.DTOs;
 using ApiElecateProspectsForm.Context;
-using ApiElecateProspectsForm.Interfaces.FormFieldsGenerators;
+using ApiElecateProspectsForm.Interfaces.Repositories;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ApiElecateProspectsForm.Controllers
 {
@@ -105,18 +106,35 @@ namespace ApiElecateProspectsForm.Controllers
         [HttpPost("saveData/{id}")]
         public async Task<IActionResult> SaveData([FromBody] SaveFormDataRequestDTO request, int id)
         {
-            if (request?.Fields == null || request.Fields.Count == 0)
+            IActionResult initialValidationResult = _validateFields.ValidateInitialRequest(request);
+
+            if (initialValidationResult is not OkResult)
             {
-                return _responseHandler.HandleError("The request must contain at least one field.", HttpStatusCode.BadRequest);
+                return initialValidationResult;
             }
+
+            // validar que venga HoneyPot
+
+            // validar que venga clientName
+
+            //if (!GlobalStateDTO.HoneypotFieldExists || !GlobalStateDTO.ClientNameExists)
+            //{
+            //    // Honeypot validation
+            //    _validateFields.AddErrorIfNotOk(_validateFields.ValidateField(field, "Honeypot"), errors);
+
+            //    // ClientName validation
+            //    _validateFields.AddErrorIfNotOk(_validateFields.ValidateField(field, "ClientName"), errors);
+            //}
+
+            //// Check if honeypot field exists
+            //_validateFields.AddErrorIfNotOk(_validateFields.ValidateHoneypotFieldExists(), errors);
+
+            //// Check if ClientName field exists
+            //_validateFields.AddErrorIfNotOk(_validateFields.ValidateClientNameFieldExists(), errors);
 
             try
             {
                 List<FormFieldsModel> formFields = await _formFieldsRepository.GetFormFieldsAsync(id);
-                if (formFields.Count == 0)
-                {
-                    return _responseHandler.HandleError("Honeypot field is missing.", HttpStatusCode.BadRequest);
-                }
 
                 await using ProspectDbContext dbContext = _dbContextFactory.CreateProspectDbContext(id.ToString());
                 object prospectResult = _prospectMapper.MapRequestToProspect(request, formFields, _maskFormatter);

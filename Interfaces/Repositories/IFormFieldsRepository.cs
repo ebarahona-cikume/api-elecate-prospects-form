@@ -1,10 +1,6 @@
 ﻿using ApiElecateProspectsForm.Models;
 
-<<<<<<<< HEAD:Interfaces/Repositories/IFormFieldsRepository.cs
 namespace ApiElecateProspectsForm.Interfaces.Repositories
-========
-namespace ApiElecateProspectsForm.Interfaces.FormFieldsGenerators
->>>>>>>> sdiaz:Interfaces/FormFieldsGenerators/IFormFieldsRepository.cs
 {
     public interface IFormFieldsRepository
     {

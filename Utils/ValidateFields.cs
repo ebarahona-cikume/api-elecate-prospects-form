@@ -227,13 +227,33 @@ namespace ApiElecateProspectsForm.Utils
 
         public void AddErrorIfNotOk(IActionResult validationResult, List<FieldErrorDTO> errors)
         {
-            if (validationResult is not OkResult)
+            if (validationResult is BadRequestObjectResult badRequestResult)
             {
-                errors.Add(new FieldErrorDTO
+                if (badRequestResult.Value is StringErrorMessageResponseDTO stringError)
                 {
-                    Index = -1,
-                    FieldErrors = [validationResult.ToString()]
-                });
+                    errors.Add(new FieldErrorDTO
+                    {
+                        Index = -1,
+                        FieldErrors = [stringError.Message]
+                    });
+                }
+                else if (badRequestResult.Value is List<string> generalErrors)
+                {
+                    errors.Add(new FieldErrorDTO
+                    {
+                        Index = -1,
+                        FieldErrors = generalErrors
+                    });
+                }
+                else
+                {
+                    // Caso genérico si el formato no es el esperado
+                    errors.Add(new FieldErrorDTO
+                    {
+                        Index = -1,
+                        FieldErrors = [badRequestResult.Value?.ToString() ?? "Unknown error"]
+                    });
+                }
             }
         }
 

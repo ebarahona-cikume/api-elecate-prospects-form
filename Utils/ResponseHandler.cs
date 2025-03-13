@@ -23,11 +23,10 @@ namespace ApiElecateProspectsForm.Utils
             HttpStatusCode statusCode = HttpStatusCode.InternalServerError,
             Exception? ex = null,
             bool isFieldErrors = false,
-            List<FieldErrorDTO>? fieldErrors = null, 
-            List<string>? generalErrors = null
+            List<FieldErrorDTO>? fieldErrors = null
         )
         {
-            var title = statusCode == HttpStatusCode.BadRequest ? "Bad Request" : "Internal Server Error";
+            _ = statusCode == HttpStatusCode.BadRequest ? "Bad Request" : "Internal Server Error";
 
             if (isFieldErrors && fieldErrors != null)
             {
@@ -35,7 +34,7 @@ namespace ApiElecateProspectsForm.Utils
                 {
                     Status = statusCode,
                     Title = GetTitle(statusCode),
-                    Errors = errors
+                    Errors = fieldErrors
                 }, statusCode);
             }
 
