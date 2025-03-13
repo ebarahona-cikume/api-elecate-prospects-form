@@ -22,10 +22,6 @@ namespace ApiElecateProspectsForm.Utils
             ProspectModel prospect = prospectModel;
             Dictionary<string, object> prospectData = [];
 
-            // Reset the state of HoneypotFieldExists
-            GlobalStateDTO.HoneypotFieldExists = false;
-            GlobalStateDTO.ClientNameExists = false;
-
             List<FieldErrorDTO> errors = [];
             List<string> unmappedFields = []; // List of fields not mapped in the database
             List<string> duplicatedFields = []; // List of duplicate fields in the request

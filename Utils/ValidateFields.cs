@@ -122,22 +122,57 @@ namespace ApiElecateProspectsForm.Utils
             return _responseHandler.HandleSuccess("Validation successful");
         }
 
-        public IActionResult ValidateField(FieldSaveFormRequestDTO field, string fieldName)
+        public IActionResult ValidateClientNameHoneypotFieldsExist(SaveFormDataRequestDTO request)
         {
-            if (!string.IsNullOrEmpty(field.Name) && field.Name.Equals(fieldName, StringComparison.OrdinalIgnoreCase))
+            bool clientNameExists = false;
+            bool honeypotFieldExists = false;
+            List<string> errors = [];
+
+            foreach (FieldSaveFormRequestDTO field in request.Fields!)
             {
-                if (fieldName.Equals("Honeypot", StringComparison.OrdinalIgnoreCase))
+                if (clientNameExists && honeypotFieldExists)
                 {
-                    GlobalStateDTO.HoneypotFieldExists = true;
+                    return new OkResult();
+                }
+
+                if (!clientNameExists && field.Name!.Equals("ClientName", StringComparison.OrdinalIgnoreCase))
+                {
+                    clientNameExists = true;
+                }
+
+                if (!honeypotFieldExists && field.Name!.Equals("Honeypot", StringComparison.OrdinalIgnoreCase))
+                {
+                    honeypotFieldExists = true;
                     if (!string.IsNullOrEmpty(field.Value))
                     {
                         return _responseHandler.HandleError("Bot detected.", HttpStatusCode.BadRequest);
                     }
                 }
-                else if (fieldName.Equals("ClientName", StringComparison.OrdinalIgnoreCase))
+            }
+
+            if (!clientNameExists)
+            {
+                errors.Add("The field 'ClientName' is required");
+            }
+
+            if (!honeypotFieldExists)
+            {
+                errors.Add("The 'Honeypot' Validator is required");
+            }
+
+            if (errors.Count > 0)
+            {
+                var errorResponse = new GeneralErrorsResponseDTO
                 {
-                    GlobalStateDTO.ClientNameExists = true;
-                }
+                    Status = HttpStatusCode.BadRequest,
+                    Title = "Bad Request",
+                    Errors = errors
+                };
+
+                return new ObjectResult(errorResponse)
+                {
+                    StatusCode = (int)HttpStatusCode.BadRequest
+                };
             }
 
             return new OkResult();
@@ -148,24 +183,6 @@ namespace ApiElecateProspectsForm.Utils
             if (matchingField.Type == "Text" && matchingField.Size > 0 && field.Value?.Length > matchingField.Size)
             {
                 return _responseHandler.HandleError($"The field '{field.Name}' exceeds the maximum length of {matchingField.Size}.", HttpStatusCode.BadRequest);
-            }
-            return new OkResult();
-        }
-
-        public IActionResult ValidateHoneypotFieldExists()
-        {
-            if (!GlobalStateDTO.HoneypotFieldExists)
-            {
-                return _responseHandler.HandleError("Honeypot Validator is required.", HttpStatusCode.BadRequest);
-            }
-            return new OkResult();
-        }
-
-        public IActionResult ValidateClientNameFieldExists()
-        {
-            if (!GlobalStateDTO.ClientNameExists)
-            {
-                return _responseHandler.HandleError("ClientName is required.", HttpStatusCode.BadRequest);
             }
             return new OkResult();
         }
