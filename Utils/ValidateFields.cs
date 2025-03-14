@@ -2,6 +2,7 @@
 using ApiElecateProspectsForm.DTOs.Errors;
 using ApiElecateProspectsForm.Interfaces;
 using ApiElecateProspectsForm.Models;
+using Azure.Core;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using System.Net;
@@ -130,13 +131,12 @@ namespace ApiElecateProspectsForm.Utils
         public IActionResult ValidateClientNameHoneypotFieldsExist(SaveFormDataRequestDTO request)
         {
             List<string> errors = [];
-            bool clientNameExists = request.Fields!.Any(field => field.Name!.Equals(_fieldNamesConfigDTO.ClientName, StringComparison.OrdinalIgnoreCase));
 
             FieldSaveFormRequestDTO? honeypotField = request.Fields!.FirstOrDefault(field => field.Name!.Equals(_fieldNamesConfigDTO.Honeypot, StringComparison.OrdinalIgnoreCase));
             bool honeypotFieldExists = honeypotField != null;
             bool honeypotFieldHasValue = honeypotFieldExists && !string.IsNullOrEmpty(honeypotField!.Value);
 
-            if (!clientNameExists)
+            if (!ValidateClientNameExists(request.Fields!))
             {
                 errors.Add("The field 'ClientName' is required");
             }
@@ -196,6 +196,17 @@ namespace ApiElecateProspectsForm.Utils
                     });
                 }
             }
+        }
+
+
+        public bool ValidateClientNameExists(List<FieldGenerateFormRequestDTO> fields)
+        {
+            return fields.Any(field => field.Name!.Equals(_fieldNamesConfigDTO.ClientName, StringComparison.OrdinalIgnoreCase));
+        }
+
+        public bool ValidateClientNameExists(List<FieldSaveFormRequestDTO> fields)
+        {
+            return fields.Any(field => field.Name!.Equals(_fieldNamesConfigDTO.ClientName, StringComparison.OrdinalIgnoreCase));
         }
 
         public IActionResult ValidateProspectData(Dictionary<string, object> prospectData)

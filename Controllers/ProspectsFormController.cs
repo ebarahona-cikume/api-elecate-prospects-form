@@ -43,6 +43,18 @@ namespace ApiElecateProspectsForm.Controllers
                 return validationResult;
             }
 
+            // Validate that "ClientName" exists in the request fields
+            if (!_validateFields.ValidateClientNameExists(request.Fields!))
+            {
+                return _responseHandler.HandleError(
+                    "The field 'ClientName' is required.",
+                    HttpStatusCode.BadRequest,
+                    null,
+                    false,
+                    null
+                );
+            }
+
             // Initialize the HTML form builder
             StringBuilder htmlBuilder = new();
             htmlBuilder.Append("<form>\n");

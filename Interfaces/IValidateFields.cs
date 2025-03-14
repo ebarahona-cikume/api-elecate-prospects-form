@@ -11,6 +11,10 @@ namespace ApiElecateProspectsForm.Interfaces
 
         IActionResult ValidateClientNameHoneypotFieldsExist(SaveFormDataRequestDTO request);
 
+        bool ValidateClientNameExists(List<FieldGenerateFormRequestDTO> fields);
+
+        bool ValidateClientNameExists(List<FieldSaveFormRequestDTO> fields);
+
         void ValidateFieldLength(FieldSaveFormRequestDTO field, FormFieldsModel matchingField, int index, List<FieldErrorDTO> errors);
 
         IActionResult ValidateProspectData(Dictionary<string, object> prospectData);
