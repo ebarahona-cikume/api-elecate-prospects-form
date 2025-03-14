@@ -8,7 +8,6 @@ using ApiElecateProspectsForm.Interfaces;
 using ApiElecateProspectsForm.DTOs;
 using ApiElecateProspectsForm.Context;
 using ApiElecateProspectsForm.Interfaces.Repositories;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ApiElecateProspectsForm.Controllers
 {
@@ -113,24 +112,12 @@ namespace ApiElecateProspectsForm.Controllers
                 return initialValidationResult;
             }
 
-            // validar que venga HoneyPot
+            IActionResult validateClientNameHoneypotFieldsExist = _validateFields.ValidateClientNameHoneypotFieldsExist(request);
 
-            // validar que venga clientName
-
-            //if (!GlobalStateDTO.HoneypotFieldExists || !GlobalStateDTO.ClientNameExists)
-            //{
-            //    // Honeypot validation
-            //    _validateFields.AddErrorIfNotOk(_validateFields.ValidateField(field, "Honeypot"), errors);
-
-            //    // ClientName validation
-            //    _validateFields.AddErrorIfNotOk(_validateFields.ValidateField(field, "ClientName"), errors);
-            //}
-
-            //// Check if honeypot field exists
-            //_validateFields.AddErrorIfNotOk(_validateFields.ValidateHoneypotFieldExists(), errors);
-
-            //// Check if ClientName field exists
-            //_validateFields.AddErrorIfNotOk(_validateFields.ValidateClientNameFieldExists(), errors);
+            if (validateClientNameHoneypotFieldsExist is not OkResult)
+            {
+                return validateClientNameHoneypotFieldsExist;
+            }
 
             try
             {

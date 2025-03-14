@@ -8,7 +8,9 @@ using System.Text.Json;
 
 namespace ApiElecateProspectsForm.Utils
 {
-    public class ProspectMapper(IValidateFields validateFields, IResponseHandler responseHandler) : IProspectMapper
+    public class ProspectMapper(
+        IValidateFields validateFields,
+        IResponseHandler responseHandler) : IProspectMapper
     {
         private readonly IValidateFields _validateFields = validateFields;
         private readonly IResponseHandler _responseHandler = responseHandler;
@@ -22,19 +24,16 @@ namespace ApiElecateProspectsForm.Utils
             ProspectModel prospect = prospectModel;
             Dictionary<string, object> prospectData = [];
 
-            // Reset the state of HoneypotFieldExists
-            GlobalStateDTO.HoneypotFieldExists = false;
-            GlobalStateDTO.ClientNameExists = false;
-
             List<FieldErrorDTO> errors = [];
-            List<FieldErrorDTO> unmappedFields = []; // Campos no mapeados en la BD
-            List<FieldErrorDTO> duplicatedFields = []; // Campos duplicados en la petición
+            List<FieldErrorDTO> unmappedFields = []; // Fields not mapped in the database
+            List<FieldErrorDTO> duplicatedFields = []; // Fields duplicated in the request
 
-            // Diccionario para contar ocurrencias y almacenar índices de cada campo
+            // Dictionary to count occurrences and store indices of each field
             Dictionary<string, List<int>> fieldOccurrences = new(StringComparer.OrdinalIgnoreCase);
 
             for (int i = 0; i < request.Fields!.Count; i++)
             {
+
                 FieldSaveFormRequestDTO field = request.Fields[i];
 
                 FormFieldsModel? matchingField = formFields
@@ -42,10 +41,10 @@ namespace ApiElecateProspectsForm.Utils
 
                 if (matchingField != null)
                 {
-                    // validamos la longitud del campo
+                    // Validate the length of the field
                     _validateFields.ValidateFieldLength(field, matchingField, i, errors);
-                    
-                    // Aplicar máscara si existe
+
+                    // Apply mask if it exists
                     string fieldValue = field.Value ?? "";
 
                     if (!string.IsNullOrEmpty(matchingField.Mask))
@@ -57,7 +56,7 @@ namespace ApiElecateProspectsForm.Utils
                     {
                         prospectData[field.Name] = fieldValue;
 
-                        // Guardar la ocurrencia del campo con su índice
+                        // Save the occurrence of the field with its index
                         if (!fieldOccurrences.TryGetValue(field.Name, out List<int>? value))
                         {
                             fieldOccurrences[field.Name] = [i];
@@ -70,7 +69,7 @@ namespace ApiElecateProspectsForm.Utils
                 }
                 else
                 {
-                    // Guardar campo no mapeado con su índice
+                    // Save unmapped field with its index
                     unmappedFields.Add(new FieldErrorDTO
                     {
                         Index = i.ToString(),
@@ -79,14 +78,14 @@ namespace ApiElecateProspectsForm.Utils
                 }
             }
 
-            // Identificar y registrar campos duplicados
+            // Identify and register duplicated fields
             foreach (var entry in fieldOccurrences)
             {
-                if (entry.Value.Count > 1) // Si el campo apareció más de una vez
+                if (entry.Value.Count > 1) // If the field appeared more than once
                 {
                     duplicatedFields.Add(new FieldErrorDTO
                     {
-                        Index = string.Join(", ", entry.Value), // Convertir los índices en string separados por comas
+                        Index = string.Join(", ", entry.Value), // Convert indices to a comma-separated string
                         FieldErrors = [$"The field '{entry.Key}' has been sent multiple times."]
                     });
                 }
@@ -97,7 +96,7 @@ namespace ApiElecateProspectsForm.Utils
                 errors.Add(duplicatedField);
             }
 
-            foreach(FieldErrorDTO unmappedField in unmappedFields)
+            foreach (FieldErrorDTO unmappedField in unmappedFields)
             {
                 errors.Add(unmappedField);
             }

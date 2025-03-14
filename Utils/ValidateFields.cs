@@ -3,15 +3,20 @@ using ApiElecateProspectsForm.DTOs.Errors;
 using ApiElecateProspectsForm.Interfaces;
 using ApiElecateProspectsForm.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using System.Net;
 using System.Reflection;
 using System.Text.Json;
 
 namespace ApiElecateProspectsForm.Utils
 {
-    public class ValidateFields(IConfiguration configuration, IResponseHandler responseHandler) : IValidateFields
+    public class ValidateFields(
+        IConfiguration configuration, 
+        IResponseHandler responseHandler,
+        IOptions<FieldNamesConfigDTO> fieldNamesConfigDTO) : IValidateFields
     {
         private readonly IConfiguration _configuration = configuration;
+        private readonly FieldNamesConfigDTO _fieldNamesConfigDTO = fieldNamesConfigDTO.Value;
         private readonly string[] ValidFieldTypes = Enum.GetNames(typeof(FieldType));
         private readonly ResponseHandler _responseHandler = (ResponseHandler)responseHandler;
 
@@ -122,22 +127,42 @@ namespace ApiElecateProspectsForm.Utils
             return _responseHandler.HandleSuccess("Validation successful");
         }
 
-        public IActionResult ValidateField(FieldSaveFormRequestDTO field, string fieldName)
+        public IActionResult ValidateClientNameHoneypotFieldsExist(SaveFormDataRequestDTO request)
         {
-            if (!string.IsNullOrEmpty(field.Name) && field.Name.Equals(fieldName, StringComparison.OrdinalIgnoreCase))
+            List<string> errors = [];
+            bool clientNameExists = request.Fields!.Any(field => field.Name!.Equals(_fieldNamesConfigDTO.ClientName, StringComparison.OrdinalIgnoreCase));
+
+            FieldSaveFormRequestDTO? honeypotField = request.Fields!.FirstOrDefault(field => field.Name!.Equals(_fieldNamesConfigDTO.Honeypot, StringComparison.OrdinalIgnoreCase));
+            bool honeypotFieldExists = honeypotField != null;
+            bool honeypotFieldHasValue = honeypotFieldExists && !string.IsNullOrEmpty(honeypotField!.Value);
+
+            if (!clientNameExists)
             {
-                if (fieldName.Equals("Honeypot", StringComparison.OrdinalIgnoreCase))
+                errors.Add("The field 'ClientName' is required");
+            }
+
+            if (!honeypotFieldExists)
+            {
+                errors.Add("The field 'Honeypot' is required");
+            }
+            else if (honeypotFieldHasValue)
+            {
+                errors.Add("Bot detected!");
+            }
+
+            if (errors.Count > 0)
+            {
+                var errorResponse = new GeneralErrorsResponseDTO
                 {
-                    GlobalStateDTO.HoneypotFieldExists = true;
-                    if (!string.IsNullOrEmpty(field.Value))
-                    {
-                        return _responseHandler.HandleError("Bot detected.", HttpStatusCode.BadRequest);
-                    }
-                }
-                else if (fieldName.Equals("ClientName", StringComparison.OrdinalIgnoreCase))
+                    Status = HttpStatusCode.BadRequest,
+                    Title = "Bad Request",
+                    Errors = errors
+                };
+
+                return new ObjectResult(errorResponse)
                 {
-                    GlobalStateDTO.ClientNameExists = true;
-                }
+                    StatusCode = (int)HttpStatusCode.BadRequest
+                };
             }
 
             return new OkResult();
@@ -171,24 +196,6 @@ namespace ApiElecateProspectsForm.Utils
                     });
                 }
             }
-        }
-
-        public IActionResult ValidateHoneypotFieldExists()
-        {
-            if (!GlobalStateDTO.HoneypotFieldExists)
-            {
-                return _responseHandler.HandleError("Honeypot Validator is required.", HttpStatusCode.BadRequest);
-            }
-            return new OkResult();
-        }
-
-        public IActionResult ValidateClientNameFieldExists()
-        {
-            if (!GlobalStateDTO.ClientNameExists)
-            {
-                return _responseHandler.HandleError("ClientName is required.", HttpStatusCode.BadRequest);
-            }
-            return new OkResult();
         }
 
         public IActionResult ValidateProspectData(Dictionary<string, object> prospectData)
