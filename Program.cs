@@ -77,4 +77,5 @@ app.UseRouting();
 app.UseCors("AllowAll");
 app.MapControllers();
 
+// Backup de la v1 de la API (sin integrar la base de Postgres)
 app.Run();
