@@ -1,5 +1,4 @@
 ﻿using ApiElecateProspectsForm.Context;
-using ApiElecateProspectsForm.Interfaces.FormFieldsGenerators;
 using ApiElecateProspectsForm.Interfaces.Repositories;
 using ApiElecateProspectsForm.Models;
 using Microsoft.EntityFrameworkCore;
@@ -40,7 +39,7 @@ namespace ApiElecateProspectsForm.Repositories
                 try
                 {
                     List<FormFieldsModel> existingFields = await dbContext.FormFields_Tbl
-                        .Where(f => f.IdForm == formId).ToListAsync();
+                        .Where(f => f.IdForm == formId && !f.IsDeleted).ToListAsync();
 
                     // Find fields to mark as deleted (fields in the DB but not in the new fields)
                     List<FormFieldsModel> fieldsToRemove = [.. existingFields.Where(existing => !newFields.Any(newField => newField.Name == existing.Name))];

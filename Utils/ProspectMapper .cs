@@ -1,8 +1,8 @@
-﻿using ApiElecateProspectsForm.Controllers;
-using ApiElecateProspectsForm.DTOs;
+﻿using ApiElecateProspectsForm.DTOs;
 using ApiElecateProspectsForm.DTOs.Errors;
 using ApiElecateProspectsForm.Interfaces;
 using ApiElecateProspectsForm.Models;
+using Microsoft.Extensions.Options;
 using System.Net;
 using System.Text.Json;
 
@@ -10,19 +10,17 @@ namespace ApiElecateProspectsForm.Utils
 {
     public class ProspectMapper(
         IValidateFields validateFields,
-        IResponseHandler responseHandler) : IProspectMapper
+        IOptions<FieldNamesConfigDTO> fieldNamesConfigDTO) : IProspectMapper
     {
         private readonly IValidateFields _validateFields = validateFields;
-        private readonly IResponseHandler _responseHandler = responseHandler;
+        private readonly FieldNamesConfigDTO _fieldNamesConfigDTO = fieldNamesConfigDTO.Value;
 
-        public object MapRequestToProspect(
-            SaveFormDataRequestDTO request,
-            List<FormFieldsModel> formFields,
-            IMaskFormatter maskFormatter)
+        public ProspectResultDTO MapRequestToProspect(
+        SaveFormDataRequestDTO request,
+        List<FormFieldsModel> formFields,
+        IMaskFormatter maskFormatter)
         {
-            ProspectModel prospectModel = new();
-            ProspectModel prospect = prospectModel;
-            Dictionary<string, object> prospectData = [];
+            ProspectModel prospectEntity = new();
 
             List<FieldErrorDTO> errors = [];
             List<FieldErrorDTO> unmappedFields = []; // Fields not mapped in the database
@@ -31,10 +29,18 @@ namespace ApiElecateProspectsForm.Utils
             // Dictionary to count occurrences and store indices of each field
             Dictionary<string, List<int>> fieldOccurrences = new(StringComparer.OrdinalIgnoreCase);
 
+            // Obtener todas las propiedades de ProspectModel para asignación dinámica
+            System.Reflection.PropertyInfo[] properties = typeof(ProspectModel).GetProperties();
+
             for (int i = 0; i < request.Fields!.Count; i++)
             {
-
                 FieldSaveFormRequestDTO field = request.Fields[i];
+
+                // Skip the field if it's a honeypot
+                if (field.Name?.Equals(_fieldNamesConfigDTO.Honeypot, StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    continue;
+                }
 
                 FormFieldsModel? matchingField = formFields
                     .FirstOrDefault(f => f.Name != null && f.Name.Equals(field.Name, StringComparison.OrdinalIgnoreCase));
@@ -54,7 +60,25 @@ namespace ApiElecateProspectsForm.Utils
 
                     if (!string.IsNullOrEmpty(field.Name))
                     {
-                        prospectData[field.Name] = fieldValue;
+                        // Buscar la propiedad en ProspectModel que coincida con el nombre del campo
+                        System.Reflection.PropertyInfo? property = properties
+                            .FirstOrDefault(p => p.Name.Equals(field.Name, StringComparison.OrdinalIgnoreCase));
+
+                        if (property != null && property.CanWrite)
+                        {
+                            try
+                            {
+                                property.SetValue(prospectEntity, Convert.ChangeType(fieldValue, property.PropertyType));
+                            }
+                            catch (Exception ex)
+                            {
+                                errors.Add(new FieldErrorDTO
+                                {
+                                    Index = i.ToString(),
+                                    FieldErrors = [$"Error setting value for '{field.Name}': {ex.Message}"]
+                                });
+                            }
+                        }
 
                         // Save the occurrence of the field with its index
                         if (!fieldOccurrences.TryGetValue(field.Name, out List<int>? value))
@@ -103,14 +127,18 @@ namespace ApiElecateProspectsForm.Utils
 
             if (errors.Count > 0)
             {
-                return _responseHandler.HandleError("Validation errors occurred",
-                    HttpStatusCode.BadRequest,
-                    new Exception(JsonSerializer.Serialize(errors)),
-                    true,
-                    errors);
+                return new ProspectResultDTO
+                {
+                    Success = false,
+                    Errors = errors
+                };
             }
 
-            return _responseHandler.HandleSuccess("Validation successful");
+            return new ProspectResultDTO
+            {
+                Success = true,
+                Prospect = prospectEntity
+            };
         }
     }
 }

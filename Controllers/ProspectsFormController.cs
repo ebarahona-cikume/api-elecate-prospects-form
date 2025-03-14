@@ -124,20 +124,37 @@ namespace ApiElecateProspectsForm.Controllers
                 List<FormFieldsModel> formFields = await _formFieldsRepository.GetFormFieldsAsync(id);
 
                 await using ProspectDbContext dbContext = _dbContextFactory.CreateProspectDbContext(id.ToString());
-                object prospectResult = _prospectMapper.MapRequestToProspect(request, formFields, _maskFormatter);
-                OkObjectResult? okResult = prospectResult as OkObjectResult;
+                ProspectResultDTO prospectResult = _prospectMapper.MapRequestToProspect(request, formFields, _maskFormatter);
 
-                if (okResult == null && prospectResult is IActionResult errorResult)
+                if (!prospectResult.Success && prospectResult.Errors?.Count > 0)
                 {
-                    return errorResult;
+                    return _responseHandler.HandleError(
+                        "An error ocurred while mapping fields",
+                        HttpStatusCode.BadRequest,
+                        null,
+                        true,
+                        prospectResult.Errors
+                    );
                 }
 
-                ProspectModel? prospect = okResult?.Value as ProspectModel;
-                dbContext.Prospect.Add(prospect!);
+                if (prospectResult.Success && prospectResult.Prospect != null)
+                {
+                    dbContext.Prospect.Add(prospectResult.Prospect);
 
-                await dbContext.SaveChangesAsync();
+                    await dbContext.SaveChangesAsync();
 
-                return _responseHandler.HandleSuccess("Data saved successfully.");
+                    return _responseHandler.HandleSuccess("Data saved successfully.");
+                } else
+                {
+                    return _responseHandler.HandleError(
+                        "An error ocurred while mapping fields",
+                        HttpStatusCode.InternalServerError,
+                        null,
+                        false,
+                        null
+                    );
+                }
+
             }
             catch (ArgumentException ex)
             {

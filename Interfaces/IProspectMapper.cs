@@ -1,12 +1,11 @@
 ﻿using ApiElecateProspectsForm.DTOs;
-using ApiElecateProspectsForm.Interfaces;
 using ApiElecateProspectsForm.Models;
 
-namespace ApiElecateProspectsForm.Controllers
+namespace ApiElecateProspectsForm.Interfaces
 {
     public interface IProspectMapper
     {
-        object MapRequestToProspect(
+        ProspectResultDTO MapRequestToProspect(
                     SaveFormDataRequestDTO request,
                     List<FormFieldsModel> formFields,
                     IMaskFormatter maskFormatter);
