@@ -6,7 +6,9 @@ namespace ApiElecateProspectsForm.Context
     public class ElecateDbContext(DbContextOptions<ElecateDbContext> options) : DbContext(options)
     {
         public DbSet<MaritalStatusModel> MaritalStatus_Tbl { get; set; }
+
         public DbSet<ServiceModel> Service_Tbl { get; set; }
+
         public DbSet<FormFieldsModel> FormFields_Tbl { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

@@ -15,6 +15,7 @@ namespace ApiElecateProspectsForm.Controllers
     [Route("elecate/prospects")]
     public class ProspectsFormController(
         IFormFieldsRepository formFieldsRepository,
+        ISecretsDbRepository secretsDbRepository,
         IResponseHandler responseHandler,
         IDbContextFactory dbContextFactory,
         IMaskFormatter maskFormatter,
@@ -22,6 +23,7 @@ namespace ApiElecateProspectsForm.Controllers
         IProspectMapper prospectMapper) : ControllerBase
     {
         private readonly IFormFieldsRepository _formFieldsRepository = formFieldsRepository;
+        private readonly ISecretsDbRepository _secretsDbRepository = secretsDbRepository;
         private readonly IResponseHandler _responseHandler = responseHandler;
         private readonly IDbContextFactory _dbContextFactory = dbContextFactory;
         private readonly IMaskFormatter _maskFormatter = maskFormatter;
@@ -32,11 +34,12 @@ namespace ApiElecateProspectsForm.Controllers
         public async Task<IActionResult> GenerateHtmlForm(
             [FromBody] GenerateFormRequestDTO request,
             [FromServices] FieldGeneratorFactory generatorFactory,
-            [FromServices] DbContextFactory dbContextFactory,
-            int id)
+            string id)
         {
             // Validate the fields in the request
             IActionResult validationResult = _validateFields.ValidateElecate(request);
+
+            Guid idGuid = Guid.Parse(id);
 
             if (validationResult is BadRequestObjectResult)
             {
@@ -62,7 +65,7 @@ namespace ApiElecateProspectsForm.Controllers
             // Add hidden field for honeypot validation
             htmlBuilder.Append("<input type='hidden' id='honeypot' name='honeypot' value=''>\n");
 
-            List<FormFieldsModel> fieldsToInsert = new();
+            List<FormFieldsModel> fieldsToInsert = [];
 
             // Generate HTML for each field in the request
             foreach (FieldGenerateFormRequestDTO? field in request.Fields)
@@ -82,7 +85,7 @@ namespace ApiElecateProspectsForm.Controllers
                     // Create the entity for saving fields in the database
                     FormFieldsModel newField = new()
                     {
-                        IdForm = id,
+                        IdForm = idGuid,
                         Type = field.Type,
                         Name = field.Name,
                         Size = field is TextFieldRequestDTO textField ? textField.Size : null,
@@ -103,7 +106,7 @@ namespace ApiElecateProspectsForm.Controllers
             {
                 try
                 {
-                    await _formFieldsRepository.SyncFormFieldsAsync(id, fieldsToInsert);
+                    await _formFieldsRepository.SyncFormFieldsAsync(idGuid, fieldsToInsert);
                 }
                 catch (Exception ex)
                 {
@@ -115,7 +118,7 @@ namespace ApiElecateProspectsForm.Controllers
         }
 
         [HttpPost("saveData/{id}")]
-        public async Task<IActionResult> SaveData([FromBody] SaveFormDataRequestDTO request, int id)
+        public async Task<IActionResult> SaveData([FromBody] SaveFormDataRequestDTO request, string id)
         {
             IActionResult initialValidationResult = _validateFields.ValidateInitialRequest(request);
 
@@ -123,6 +126,8 @@ namespace ApiElecateProspectsForm.Controllers
             {
                 return initialValidationResult;
             }
+
+            Guid idGuid = Guid.Parse(id);
 
             IActionResult validateClientNameHoneypotFieldsExist = _validateFields.ValidateClientNameHoneypotFieldsExist(request);
 
@@ -133,9 +138,21 @@ namespace ApiElecateProspectsForm.Controllers
 
             try
             {
-                List<FormFieldsModel> formFields = await _formFieldsRepository.GetFormFieldsAsync(id);
+                var dbSecret = await _secretsDbRepository.GetDbSecretsFieldsAsync(idGuid);
+                if (dbSecret == null)
+                {
+                    return _responseHandler.HandleError(
+                        "An error ocurred while getting vw_db_secrets data",
+                        HttpStatusCode.BadRequest,
+                        null,
+                        true,
+                        null
+                     );
+                }
 
-                await using ProspectDbContext dbContext = _dbContextFactory.CreateProspectDbContext(id.ToString());
+                List<FormFieldsModel> formFields = await _formFieldsRepository.GetFormFieldsAsync(dbSecret.secret_id);
+
+                await using ProspectDbContext dbContext = _dbContextFactory.CreateProspectDbContext(dbSecret.db_name!);
                 ProspectResultDTO prospectResult = _prospectMapper.MapRequestToProspect(request, formFields, _maskFormatter);
 
                 if (!prospectResult.Success && prospectResult.Errors?.Count > 0)

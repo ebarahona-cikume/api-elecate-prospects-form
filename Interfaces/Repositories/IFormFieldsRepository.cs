@@ -4,10 +4,10 @@ namespace ApiElecateProspectsForm.Interfaces.Repositories
 {
     public interface IFormFieldsRepository
     {
-        IQueryable<FormFieldsModel> GetFieldsByFormId(int Id);
+        IQueryable<FormFieldsModel> GetFieldsByFormId(Guid Id);
 
-        Task<List<FormFieldsModel>> GetFormFieldsAsync(int id);
+        Task<List<FormFieldsModel>> GetFormFieldsAsync(Guid id);
 
-        Task SyncFormFieldsAsync(int formId, IEnumerable<FormFieldsModel> newFields);
+        Task SyncFormFieldsAsync(Guid formId, IEnumerable<FormFieldsModel> newFields);
     }
 }

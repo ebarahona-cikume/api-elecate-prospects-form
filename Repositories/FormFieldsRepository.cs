@@ -9,7 +9,7 @@ namespace ApiElecateProspectsForm.Repositories
     {
         private readonly DbContextFactory _dbContextFactory = contextFactory;
 
-        public IQueryable<FormFieldsModel> GetFieldsByFormId(int Id)
+        public IQueryable<FormFieldsModel> GetFieldsByFormId(Guid Id)
         {
             ElecateDbContext dbContext = _dbContextFactory.CreateElecateDbContext(); // Create a new dynamic DbContext
 
@@ -17,7 +17,7 @@ namespace ApiElecateProspectsForm.Repositories
                 .Where(f => f.IdForm == Id && !f.IsDeleted); // Exclude logically deleted records
         }
 
-        public async Task<List<FormFieldsModel>> GetFormFieldsAsync(int id)
+        public async Task<List<FormFieldsModel>> GetFormFieldsAsync(Guid id)
         {
             await using ElecateDbContext elecateDbContext = _dbContextFactory.CreateElecateDbContext();
             return await elecateDbContext.FormFields_Tbl
@@ -25,7 +25,7 @@ namespace ApiElecateProspectsForm.Repositories
                 .ToListAsync();
         }
 
-        public async Task SyncFormFieldsAsync(int formId, IEnumerable<FormFieldsModel> newFields)
+        public async Task SyncFormFieldsAsync(Guid formId, IEnumerable<FormFieldsModel> newFields)
         {
             ArgumentNullException.ThrowIfNull(newFields);
 
