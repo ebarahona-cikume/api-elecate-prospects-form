@@ -29,6 +29,7 @@ builder.Services.AddSingleton<PostgreSqlDbContextOptionsFactory>();
 // Register DbContextFactory
 builder.Services.AddSingleton<DbContextFactory>();
 builder.Services.AddScoped<IDbContextFactory, DbContextFactory>();
+
 // Register the repository
 builder.Services.AddScoped<IMaritalStatusRepository, MaritalStatusRepository>();
 builder.Services.AddScoped<IServiceRepository, ServiceRepository>();

@@ -30,7 +30,7 @@ namespace ApiElecateProspectsForm.Services.FormFieldsGenerators
             IEnumerable<MaritalStatusModel> maritalStatuses = await response.Content.ReadFromJsonAsync<IEnumerable<MaritalStatusModel>>() ?? [];
 
             // HTML Construction
-            StringBuilder htmlBuilder = new StringBuilder();
+            StringBuilder htmlBuilder = new();
 
             foreach (MaritalStatusModel option in maritalStatuses)
             {

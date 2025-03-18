@@ -29,7 +29,7 @@ namespace ApiElecateProspectsForm.Services.FormComponentsGenerators
 
             IEnumerable<MaritalStatusModel> maritalStatuses = await response.Content.ReadFromJsonAsync<IEnumerable<MaritalStatusModel>>() ?? [];
 
-            StringBuilder htmlBuilder = new StringBuilder($"<select id=\"{field.Name}\" name=\"{field.Name}\">\n");
+            StringBuilder htmlBuilder = new($"<select id=\"{field.Name}\" name=\"{field.Name}\">\n");
 
             foreach (MaritalStatusModel status in maritalStatuses)
             {

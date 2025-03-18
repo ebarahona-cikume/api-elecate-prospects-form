@@ -9,22 +9,19 @@ namespace ApiElecateProspectsForm.Repositories
     {
         private readonly DbContextFactory _dbContextFactory = contextFactory;
 
-        //public async Task<DbSecretsModel?> GetDbSecretsFieldsAsync(Guid id)
-        //{
-        //    await using SecretsDbContext secretDbContext = _dbContextFactory.CreateSecretsPostgresqlDbContext();
-        //    DbSecretsModel? secret = await secretDbContext.VW_DB_SECRETS
-        //        .Where(f => f.SecretId == id && f.IsActive)
-        //        .FirstOrDefaultAsync();
+        public DbContextFactory GetDbContextFactory()
+        {
+            return _dbContextFactory;
+        }
 
-        //    return secret;
-        //}
         public async Task<DbSecretsModel?> GetDbSecretsFieldsAsync(Guid id)
         {
             SecretsDbContext? secretDbContext = null;
+
             try
             {
-                secretDbContext = _dbContextFactory.CreateSecretsPostgresqlDbContext();
-                var secret = await secretDbContext.Set<DbSecretsModel>()
+                secretDbContext = GetDbContextFactory().CreateSecretsPostgresqlDbContext();
+                DbSecretsModel? secret = await secretDbContext.Set<DbSecretsModel>()
                     .FromSqlRaw("SELECT * FROM VW_DB_SECRETS WHERE secret_id = {0} AND is_active = true", id)
                     .FirstOrDefaultAsync();
 
@@ -32,7 +29,6 @@ namespace ApiElecateProspectsForm.Repositories
             }
             catch (Exception ex)
             {
-                // Registrar el mensaje de error y la pila de llamadas
                 Console.WriteLine($"Error: {ex.Message}");
                 Console.WriteLine($"Stack Trace: {ex.StackTrace}");
                 return null;

@@ -19,5 +19,4 @@ namespace ApiElecateProspectsForm.Context
             }
         }
     }
-
 }

@@ -138,7 +138,7 @@ namespace ApiElecateProspectsForm.Controllers
 
             try
             {
-                var dbSecret = await _secretsDbRepository.GetDbSecretsFieldsAsync(idGuid);
+                DbSecretsModel? dbSecret = await _secretsDbRepository.GetDbSecretsFieldsAsync(idGuid);
                 if (dbSecret == null)
                 {
                     return _responseHandler.HandleError(
