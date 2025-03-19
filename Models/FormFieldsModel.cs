@@ -4,7 +4,7 @@
     {
         public int Id { get; set; }
 
-        public int IdForm { get; set; }
+        public Guid IdForm { get; set; }
 
         public string? Type { get; set; }
         
@@ -17,6 +17,7 @@
         public int Link { get; set; }
 
         public string? Relation { get; set; }
+
         public bool IsDeleted { get; set; }
     }
 }

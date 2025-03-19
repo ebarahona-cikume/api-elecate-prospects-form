@@ -1,25 +1,39 @@
 ﻿using ApiElecateProspectsForm.DTOs;
 using ApiElecateProspectsForm.Interfaces.FormFieldsGenerators;
 using ApiElecateProspectsForm.Services.FormComponentsGenerators;
+using ApiElecateProspectsForm.Services.FormFieldsGenerators;
 
-namespace ApiElecateProspectsForm.Services.FormFieldsGenerators
+public class FieldGeneratorFactory
 {
-    public class FieldGeneratorFactory
+    private readonly IServiceProvider _serviceProvider;
+    private readonly Dictionary<FieldType, Type> _generatorMap;
+
+    public FieldGeneratorFactory(IServiceProvider serviceProvider)
     {
-        private readonly IServiceProvider _serviceProvider;
-
-        public FieldGeneratorFactory(IServiceProvider serviceProvider) => _serviceProvider = serviceProvider;
-
-        public IFormFieldGenerator GetGenerator(FieldType fieldType) => fieldType switch
+        _serviceProvider = serviceProvider;
+        _generatorMap = new Dictionary<FieldType, Type>
         {
-            FieldType.Text => _serviceProvider.GetRequiredService<TextFieldGenerator>(),
-            FieldType.Number => _serviceProvider.GetRequiredService<TextFieldGenerator>(),
-            FieldType.Password => _serviceProvider.GetRequiredService<TextFieldGenerator>(),
-            FieldType.Email => _serviceProvider.GetRequiredService<TextFieldGenerator>(),
-            FieldType.Select => _serviceProvider.GetRequiredService<SelectFieldGenerator>(),
-            FieldType.Radio => _serviceProvider.GetRequiredService<RadioFieldGenerator>(),
-            FieldType.Checkbox => _serviceProvider.GetRequiredService<CheckboxFieldGenerator>(),
-            _ => throw new NotImplementedException($"No generator found for {fieldType}")
+            { FieldType.Text, typeof(TextFieldGenerator) },
+            { FieldType.Number, typeof(TextFieldGenerator) },
+            { FieldType.Password, typeof(TextFieldGenerator) },
+            { FieldType.Email, typeof(TextFieldGenerator) },
+            { FieldType.Select, typeof(SelectFieldGenerator) },
+            { FieldType.Radio, typeof(RadioFieldGenerator) },
+            { FieldType.Checkbox, typeof(CheckboxFieldGenerator) }
         };
+    }
+
+    public IFormFieldGenerator GetGenerator(FieldType fieldType)
+    {
+        if (_generatorMap.TryGetValue(fieldType, out var generatorType))
+        {
+            return (IFormFieldGenerator)_serviceProvider.GetRequiredService(generatorType);
+        }
+        throw new NotImplementedException($"No generator found for {fieldType}");
+    }
+
+    public void AddGenerator(FieldType fieldType, Type generatorType)
+    {
+        _generatorMap[fieldType] = generatorType;
     }
 }

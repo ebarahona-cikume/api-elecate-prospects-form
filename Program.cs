@@ -6,6 +6,7 @@ using ApiElecateProspectsForm.Utils;
 using ApiElecateProspectsForm.Interfaces.Repositories;
 using ApiElecateProspectsForm.Interfaces;
 using ApiElecateProspectsForm.DTOs;
+using ApiElecateProspectsForm.Services.DbContextFactory;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -21,7 +22,11 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Configure Entity Framework and the database connection
+// Register the specific factories
+builder.Services.AddSingleton<SqlServerDbContextOptionsFactory>();
+builder.Services.AddSingleton<PostgreSqlDbContextOptionsFactory>();
+
+// Register DbContextFactory
 builder.Services.AddSingleton<DbContextFactory>();
 builder.Services.AddScoped<IDbContextFactory, DbContextFactory>();
 
@@ -29,6 +34,7 @@ builder.Services.AddScoped<IDbContextFactory, DbContextFactory>();
 builder.Services.AddScoped<IMaritalStatusRepository, MaritalStatusRepository>();
 builder.Services.AddScoped<IServiceRepository, ServiceRepository>();
 builder.Services.AddScoped<IFormFieldsRepository, FormFieldsRepository>();
+builder.Services.AddScoped<ISecretsDbRepository, SecretsDbRepository>();
 builder.Services.AddScoped<IMaskFormatter, MaskFormatter>();
 
 // Register the Form Fields Factory
@@ -62,7 +68,7 @@ builder.Services.AddCors(options =>
         });
 });
 
-WebApplication app = builder.Build();
+var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
