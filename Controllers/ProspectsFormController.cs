@@ -153,6 +153,7 @@ namespace ApiElecateProspectsForm.Controllers
                 List<FormFieldsModel> formFields = await _formFieldsRepository.GetFormFieldsAsync(dbSecret.secret_id);
 
                 await using ProspectDbContext dbContext = _dbContextFactory.CreateProspectDbContext(dbSecret.db_name!);
+
                 ProspectResultDTO prospectResult = _prospectMapper.MapRequestToProspect(request, formFields, _maskFormatter);
 
                 if (!prospectResult.Success && prospectResult.Errors?.Count > 0)
@@ -173,7 +174,8 @@ namespace ApiElecateProspectsForm.Controllers
                     await dbContext.SaveChangesAsync();
 
                     return _responseHandler.HandleSuccess("Data saved successfully.");
-                } else
+                }
+                else
                 {
                     return _responseHandler.HandleError(
                         "An error ocurred while mapping fields",
@@ -183,7 +185,6 @@ namespace ApiElecateProspectsForm.Controllers
                         null
                     );
                 }
-
             }
             catch (ArgumentException ex)
             {
