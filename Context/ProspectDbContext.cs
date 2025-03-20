@@ -1,5 +1,4 @@
 ﻿using ApiElecateProspectsForm.Models;
-using Google.Protobuf.WellKnownTypes;
 using Microsoft.EntityFrameworkCore;
 
 namespace ApiElecateProspectsForm.Context
@@ -9,8 +8,6 @@ namespace ApiElecateProspectsForm.Context
         public DbSet<ProspectModel> Prospect { get; set; }
                 protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            base.OnModelCreating(modelBuilder);
-
             modelBuilder.Entity<ProspectModel>()
                 .HasKey(p => p.pro_id);
 
