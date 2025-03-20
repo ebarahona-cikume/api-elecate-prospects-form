@@ -2,18 +2,12 @@
 using ApiElecateProspectsForm.DTOs.Errors;
 using ApiElecateProspectsForm.Interfaces;
 using ApiElecateProspectsForm.Models;
-using Microsoft.Extensions.Options;
-using System.Net;
-using System.Text.Json;
 
 namespace ApiElecateProspectsForm.Utils
 {
-    public class ProspectMapper(
-        IValidateFields validateFields,
-        IOptions<FieldNamesConfigDTO> fieldNamesConfigDTO) : IProspectMapper
+    public class ProspectMapper(IValidateFields validateFields) : IProspectMapper
     {
         private readonly IValidateFields _validateFields = validateFields;
-        private readonly FieldNamesConfigDTO _fieldNamesConfigDTO = fieldNamesConfigDTO.Value;
 
         public ProspectResultDTO MapRequestToProspect(
         SaveFormDataRequestDTO request,
@@ -37,7 +31,7 @@ namespace ApiElecateProspectsForm.Utils
                 FieldSaveFormRequestDTO field = request.Fields[i];
 
                 // Skip the field if it's a honeypot
-                if (field.Name?.Equals(_fieldNamesConfigDTO.Honeypot, StringComparison.OrdinalIgnoreCase) == true)
+                if (field.Name?.Equals("Honeypot", StringComparison.OrdinalIgnoreCase) == true)
                 {
                     continue;
                 }

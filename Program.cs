@@ -7,6 +7,7 @@ using ApiElecateProspectsForm.Interfaces.Repositories;
 using ApiElecateProspectsForm.Interfaces;
 using ApiElecateProspectsForm.DTOs;
 using ApiElecateProspectsForm.Services.DbContextFactory;
+using ApiElecateProspectsForm.Middlewares;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -54,9 +55,6 @@ builder.Services.AddScoped<IResponseHandler, ResponseHandler>();
 builder.Services.AddScoped<IValidateFields, ValidateFields>();
 builder.Services.AddScoped<IProspectMapper, ProspectMapper>();
 
-// Register FieldNamesConfigDTO
-builder.Services.Configure<FieldNamesConfigDTO>(builder.Configuration.GetSection("FieldNames"));
-
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll",
@@ -69,6 +67,8 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+app.UseMiddleware<ExceptionMiddleware>();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

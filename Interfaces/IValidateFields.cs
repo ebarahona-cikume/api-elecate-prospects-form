@@ -9,11 +9,11 @@ namespace ApiElecateProspectsForm.Interfaces
     {
         IActionResult ValidateElecate(GenerateFormRequestDTO request);
 
-        IActionResult ValidateClientNameHoneypotFieldsExist(SaveFormDataRequestDTO request);
+        IActionResult ValidateRequiredFieldsAndHoneypot(SaveFormDataRequestDTO request);
 
-        bool ValidateClientNameExists(List<FieldGenerateFormRequestDTO> fields);
+        (bool Exists, bool HasValue) IsHoneypotExistAndValid(List<FieldSaveFormRequestDTO> Fields);
 
-        bool ValidateClientNameExists(List<FieldSaveFormRequestDTO> fields);
+        List<string> ValidateRequiredFormFields(List<string> fields);
 
         void ValidateFieldLength(FieldSaveFormRequestDTO field, FormFieldsModel matchingField, int index, List<FieldErrorDTO> errors);
 

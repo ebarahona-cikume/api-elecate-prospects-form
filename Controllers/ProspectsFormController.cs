@@ -8,6 +8,7 @@ using ApiElecateProspectsForm.Interfaces;
 using ApiElecateProspectsForm.DTOs;
 using ApiElecateProspectsForm.Context;
 using ApiElecateProspectsForm.Interfaces.Repositories;
+using Azure;
 
 namespace ApiElecateProspectsForm.Controllers
 {
@@ -46,17 +47,23 @@ namespace ApiElecateProspectsForm.Controllers
                 return validationResult;
             }
 
-            // Validate that "ClientName" exists in the request fields
-            //if (!_validateFields.ValidateClientNameExists(request.Fields!))
-            //{
-            //    return _responseHandler.HandleError(
-            //        "The field 'ClientName' is required.",
-            //        HttpStatusCode.BadRequest,
-            //        null,
-            //        false,
-            //        null
-            //    );
-            //}
+            // Validate the required fields
+            List<string> fieldNames = request.Fields?
+                                      .Where(field => !string.IsNullOrEmpty(field?.Name))
+                                      .Select(field => field?.Name!)
+                                      .ToList() ?? [];
+
+            List<string> requiredFormFieldsErrors = _validateFields.ValidateRequiredFormFields(fieldNames);
+
+            if (requiredFormFieldsErrors.Count > 0)
+            {
+                return new BadRequestObjectResult(new
+                {
+                    Status = HttpStatusCode.BadRequest,
+                    Title = "Bad Request",
+                    Errors = requiredFormFieldsErrors
+                });
+            }
 
             // Initialize the HTML form builder
             StringBuilder htmlBuilder = new();
@@ -68,7 +75,9 @@ namespace ApiElecateProspectsForm.Controllers
             List<FormFieldsModel> fieldsToInsert = [];
 
             // Generate HTML for each field in the request
-            foreach (FieldGenerateFormRequestDTO? field in request.Fields)
+            if (request.Fields?.Count > 0)
+            {
+                foreach (FieldGenerateFormRequestDTO? field in request.Fields)
             {
                 if (field != null)
                 {
@@ -97,6 +106,7 @@ namespace ApiElecateProspectsForm.Controllers
 
                     fieldsToInsert.Add(newField);
                 }
+            }
             }
 
             htmlBuilder.Append("</form>");
@@ -129,7 +139,7 @@ namespace ApiElecateProspectsForm.Controllers
 
             Guid idGuid = Guid.Parse(id);
 
-            IActionResult validateClientNameHoneypotFieldsExist = _validateFields.ValidateClientNameHoneypotFieldsExist(request);
+            IActionResult validateClientNameHoneypotFieldsExist = _validateFields.ValidateRequiredFieldsAndHoneypot(request);
 
             if (validateClientNameHoneypotFieldsExist is not OkResult)
             {
@@ -139,6 +149,7 @@ namespace ApiElecateProspectsForm.Controllers
             try
             {
                 DbSecretsModel? dbSecret = await _secretsDbRepository.GetDbSecretsFieldsAsync(idGuid);
+                
                 if (dbSecret == null)
                 {
                     return _responseHandler.HandleError(
@@ -151,6 +162,17 @@ namespace ApiElecateProspectsForm.Controllers
                 }
 
                 List<FormFieldsModel> formFields = await _formFieldsRepository.GetFormFieldsAsync(dbSecret.secret_id);
+
+                if (!(formFields.Count > 0))
+                {
+                    return _responseHandler.HandleError(
+                        "No form has been created for the requested customer",
+                        HttpStatusCode.BadRequest,
+                        null,
+                        false,
+                        null
+                     );
+                }
 
                 await using ProspectDbContext dbContext = _dbContextFactory.CreateProspectDbContext(dbSecret.db_name!);
 

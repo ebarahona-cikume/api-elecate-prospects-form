@@ -6,7 +6,7 @@ namespace ApiElecateProspectsForm.Context
     public class ProspectDbContext(DbContextOptions<ProspectDbContext> options) : DbContext(options)
     {
         public DbSet<ProspectModel> Prospect { get; set; }
-                protected override void OnModelCreating(ModelBuilder modelBuilder)
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<ProspectModel>()
                 .HasKey(p => p.pro_id);

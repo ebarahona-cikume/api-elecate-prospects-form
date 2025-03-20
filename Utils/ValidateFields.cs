@@ -2,9 +2,7 @@
 using ApiElecateProspectsForm.DTOs.Errors;
 using ApiElecateProspectsForm.Interfaces;
 using ApiElecateProspectsForm.Models;
-using Azure.Core;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using System.Net;
 using System.Reflection;
 using System.Text.Json;
@@ -13,11 +11,9 @@ namespace ApiElecateProspectsForm.Utils
 {
     public class ValidateFields(
         IConfiguration configuration, 
-        IResponseHandler responseHandler,
-        IOptions<FieldNamesConfigDTO> fieldNamesConfigDTO) : IValidateFields
+        IResponseHandler responseHandler) : IValidateFields
     {
         private readonly IConfiguration _configuration = configuration;
-        private readonly FieldNamesConfigDTO _fieldNamesConfigDTO = fieldNamesConfigDTO.Value;
         private readonly string[] ValidFieldTypes = Enum.GetNames(typeof(FieldType));
         private readonly ResponseHandler _responseHandler = (ResponseHandler)responseHandler;
 
@@ -128,18 +124,11 @@ namespace ApiElecateProspectsForm.Utils
             return _responseHandler.HandleSuccess("Validation successful");
         }
 
-        public IActionResult ValidateClientNameHoneypotFieldsExist(SaveFormDataRequestDTO request)
+        public IActionResult ValidateRequiredFieldsAndHoneypot(SaveFormDataRequestDTO request)
         {
             List<string> errors = [];
 
-            FieldSaveFormRequestDTO? honeypotField = request.Fields!.FirstOrDefault(field => field.Name!.Equals(_fieldNamesConfigDTO.Honeypot, StringComparison.OrdinalIgnoreCase));
-            bool honeypotFieldExists = honeypotField != null;
-            bool honeypotFieldHasValue = honeypotFieldExists && !string.IsNullOrEmpty(honeypotField!.Value);
-
-            //if (!ValidateClientNameExists(request.Fields!))
-            //{
-            //    errors.Add("The field 'ClientName' is required");
-            //}
+            var (honeypotFieldExists, honeypotFieldHasValue) = IsHoneypotExistAndValid(request.Fields!);
 
             if (!honeypotFieldExists)
             {
@@ -148,6 +137,18 @@ namespace ApiElecateProspectsForm.Utils
             else if (honeypotFieldHasValue)
             {
                 errors.Add("Bot detected!");
+            }
+
+            List<string> fieldNames = request.Fields?
+                                      .Where(field => !string.IsNullOrEmpty(field.Name))
+                                      .Select(field => field.Name!)
+                                      .ToList() ?? [];
+
+            List<string> requiredFormFieldsErrors = ValidateRequiredFormFields(fieldNames);
+
+            foreach (string error in requiredFormFieldsErrors)
+            {
+                errors.Add(error);
             }
 
             if (errors.Count > 0)
@@ -166,6 +167,38 @@ namespace ApiElecateProspectsForm.Utils
             }
 
             return new OkResult();
+        }
+
+        public (bool Exists, bool HasValue) IsHoneypotExistAndValid(List<FieldSaveFormRequestDTO> fields)
+        {
+            FieldSaveFormRequestDTO? honeypotField = fields.FirstOrDefault(field => field.Name!.Equals("Honeypot", StringComparison.OrdinalIgnoreCase));
+            
+            bool honeypotFieldExists = honeypotField != null;
+            
+            bool honeypotFieldHasValue = honeypotFieldExists && !string.IsNullOrEmpty(honeypotField!.Value);
+
+            return (honeypotFieldExists, honeypotFieldHasValue);
+        }
+
+        public List<string> ValidateRequiredFormFields(List<string> fields)
+        {
+            List<string> requiredFields = _configuration.GetSection("RequiredFormFields").Get<List<string>>() ?? [];
+
+            List<string> errors = [];
+
+            if (requiredFields.Count > 0)
+            {
+                foreach (var requiredField in requiredFields)
+                {
+                    if (!fields.Any(f => f == requiredField))
+                    {
+                        errors.Add($"The field '{requiredField}' is required");
+                    }
+                }
+
+            }
+
+            return errors;
         }
 
         public void ValidateFieldLength(FieldSaveFormRequestDTO field, FormFieldsModel matchingField, int index, List<FieldErrorDTO> errors)
@@ -196,17 +229,6 @@ namespace ApiElecateProspectsForm.Utils
                     });
                 }
             }
-        }
-
-
-        public bool ValidateClientNameExists(List<FieldGenerateFormRequestDTO> fields)
-        {
-            return fields.Any(field => field.Name!.Equals(_fieldNamesConfigDTO.ClientName, StringComparison.OrdinalIgnoreCase));
-        }
-
-        public bool ValidateClientNameExists(List<FieldSaveFormRequestDTO> fields)
-        {
-            return fields.Any(field => field.Name!.Equals(_fieldNamesConfigDTO.ClientName, StringComparison.OrdinalIgnoreCase));
         }
 
         public IActionResult ValidateProspectData(Dictionary<string, object> prospectData)
