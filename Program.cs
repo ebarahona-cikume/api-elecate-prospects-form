@@ -5,7 +5,6 @@ using ApiElecateProspectsForm.Context;
 using ApiElecateProspectsForm.Utils;
 using ApiElecateProspectsForm.Interfaces.Repositories;
 using ApiElecateProspectsForm.Interfaces;
-using ApiElecateProspectsForm.DTOs;
 using ApiElecateProspectsForm.Services.DbContextFactory;
 using ApiElecateProspectsForm.Middlewares;
 
