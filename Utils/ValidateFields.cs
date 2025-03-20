@@ -136,10 +136,10 @@ namespace ApiElecateProspectsForm.Utils
             bool honeypotFieldExists = honeypotField != null;
             bool honeypotFieldHasValue = honeypotFieldExists && !string.IsNullOrEmpty(honeypotField!.Value);
 
-            if (!ValidateClientNameExists(request.Fields!))
-            {
-                errors.Add("The field 'ClientName' is required");
-            }
+            //if (!ValidateClientNameExists(request.Fields!))
+            //{
+            //    errors.Add("The field 'ClientName' is required");
+            //}
 
             if (!honeypotFieldExists)
             {
