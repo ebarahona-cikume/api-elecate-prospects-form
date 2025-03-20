@@ -62,6 +62,7 @@ namespace ApiElecateProspectsForm.Utils
                             {
                                 fieldErrors.Add($"The field '{property.Name}' is required");
                             }
+
                             else if (value is string stringValue &&
                                 string.IsNullOrEmpty(stringValue) &&
                                 (field.Type != null &&
@@ -128,7 +129,7 @@ namespace ApiElecateProspectsForm.Utils
         {
             List<string> errors = [];
 
-            var (honeypotFieldExists, honeypotFieldHasValue) = IsHoneypotExistAndValid(request.Fields!);
+            (bool honeypotFieldExists, bool honeypotFieldHasValue) = IsHoneypotExistAndValid(request.Fields!);
 
             if (!honeypotFieldExists)
             {
@@ -182,7 +183,7 @@ namespace ApiElecateProspectsForm.Utils
 
         public List<string> ValidateRequiredFormFields(List<string> fields)
         {
-            List<string> requiredFields = _configuration.GetSection("RequiredFormFields").Get<List<string>>() ?? [];
+            List<string> requiredFields = _configuration.GetSection("RequiredFormFields").Get<List<string>>() ?? new List<string>();
 
             List<string> errors = [];
 
@@ -190,12 +191,11 @@ namespace ApiElecateProspectsForm.Utils
             {
                 foreach (var requiredField in requiredFields)
                 {
-                    if (!fields.Any(f => f == requiredField))
+                    if (!fields.Any(f => f.Equals(requiredField, StringComparison.OrdinalIgnoreCase)))
                     {
                         errors.Add($"The field '{requiredField}' is required");
                     }
                 }
-
             }
 
             return errors;
