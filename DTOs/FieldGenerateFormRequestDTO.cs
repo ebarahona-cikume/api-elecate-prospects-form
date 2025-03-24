@@ -15,20 +15,15 @@ namespace ApiElecateProspectsForm.DTOs
     }
 
     [JsonConverter(typeof(FormFieldRequestConverter))]
-    public abstract class FormFieldRequestDTO
+    public abstract class FieldGenerateFormRequestDTO
     {
-        [JsonPropertyName("id")]
-        public required string Id { get; set; }
-
         [JsonPropertyName("name")]
-        public required string Name { get; set; }
+        public string? Name { get; set; }
 
         [JsonPropertyName("type")]
-        public required string Type { get; set; }
+        public string? Type { get; set; }
 
         [JsonPropertyName("link")]
         public int Link { get; set; }
-
     }
-
 }

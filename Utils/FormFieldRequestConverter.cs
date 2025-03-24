@@ -4,30 +4,37 @@ using System.Text.Json;
 
 namespace ApiElecateProspectsForm.Utils
 {
-    public class FormFieldRequestConverter : JsonConverter<FormFieldRequestDTO>
+    public class FormFieldRequestConverter : JsonConverter<FieldGenerateFormRequestDTO>
     {
-        public override FormFieldRequestDTO? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        public override FieldGenerateFormRequestDTO? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            using (JsonDocument doc = JsonDocument.ParseValue(ref reader))
+            using JsonDocument doc = JsonDocument.ParseValue(ref reader);
+            JsonElement root = doc.RootElement;
+
+            if (!root.TryGetProperty("type", out JsonElement typeElement))
             {
-                JsonElement root = doc.RootElement;
+                return null;
+            }
 
-                if (!root.TryGetProperty("type", out JsonElement typeElement))
-                {
-                    throw new JsonException("El campo 'type' es obligatorio.");
-                }
+            string? type = typeElement.GetString()?.ToLowerInvariant() ?? "";
+            List<string> textFieldTypes = ["text", "number", "password", "email"];
+            List<string> selectFieldTypes = ["select", "checkbox", "radio"];
 
-                string? type = typeElement.GetString();
-                return type switch
-                {
-                    "Text" or "Number" or "Password" or "Email" => JsonSerializer.Deserialize<TextFieldRequestDTO>(root.GetRawText(), options),
-                    "Select" or "Radio" or "Checkbox" => JsonSerializer.Deserialize<SelectFieldRequestDTO>(root.GetRawText(), options),
-                    _ => throw new JsonException($"Tipo de campo '{type}' no soportado."),
-                };
+            if (textFieldTypes.Contains(type))
+            {
+                return JsonSerializer.Deserialize<TextFieldRequestDTO>(root.GetRawText(), options);
+            }
+            else if (selectFieldTypes.Contains(type))
+            {
+                return JsonSerializer.Deserialize<SelectFieldRequestDTO>(root.GetRawText(), options);
+            }
+            else
+            {
+                return null;
             }
         }
 
-        public override void Write(Utf8JsonWriter writer, FormFieldRequestDTO value, JsonSerializerOptions options)
+        public override void Write(Utf8JsonWriter writer, FieldGenerateFormRequestDTO value, JsonSerializerOptions options)
         {
             JsonSerializer.Serialize(writer, (object)value, value.GetType(), options);
         }

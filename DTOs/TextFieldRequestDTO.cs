@@ -2,7 +2,7 @@
 
 namespace ApiElecateProspectsForm.DTOs
 {
-    public class TextFieldRequestDTO: FormFieldRequestDTO
+    public class TextFieldRequestDTO: FieldGenerateFormRequestDTO
     {
         [JsonPropertyName("size")]
         public int Size { get; set; }
