@@ -2,13 +2,11 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Text;
 using System.Net;
-using ApiElecateProspectsForm.Services.FormFieldsGenerators;
 using ApiElecateProspectsForm.Models;
 using ApiElecateProspectsForm.Interfaces;
 using ApiElecateProspectsForm.DTOs;
 using ApiElecateProspectsForm.Context;
 using ApiElecateProspectsForm.Interfaces.Repositories;
-using Azure;
 
 namespace ApiElecateProspectsForm.Controllers
 {
@@ -78,35 +76,35 @@ namespace ApiElecateProspectsForm.Controllers
             if (request.Fields?.Count > 0)
             {
                 foreach (FieldGenerateFormRequestDTO? field in request.Fields)
-            {
-                if (field != null)
                 {
-                    if (!Enum.TryParse(field.Type, true, out FieldType fieldType))
+                    if (field != null)
                     {
-                        fieldType = FieldType.Text;
+                        if (!Enum.TryParse(field.Type, true, out FieldType fieldType))
+                        {
+                            fieldType = FieldType.Text;
+                        }
+
+                        // Get the appropriate field generator and generate the field HTML
+                        Interfaces.FormFieldsGenerators.IFormFieldGenerator generator = generatorFactory.GetGenerator(fieldType);
+                        string fieldHtml = await generator.GenerateComponent(field);
+                        htmlBuilder.Append(fieldHtml);
+
+                        // Create the entity for saving fields in the database
+                        FormFieldsModel newField = new()
+                        {
+                            IdForm = idGuid,
+                            Type = field.Type,
+                            Name = field.Name,
+                            Size = field is TextFieldRequestDTO textField ? textField.Size : null,
+                            Mask = field is TextFieldRequestDTO textFieldWithMask ? textFieldWithMask.Mask : null,
+                            Link = field.Link,
+                            Relation = field is SelectFieldRequestDTO selectField ? selectField.Relation : null,
+                            IsDeleted = false,
+                        };
+
+                        fieldsToInsert.Add(newField);
                     }
-
-                    // Get the appropriate field generator and generate the field HTML
-                    Interfaces.FormFieldsGenerators.IFormFieldGenerator generator = generatorFactory.GetGenerator(fieldType);
-                    string fieldHtml = await generator.GenerateComponent(field);
-                    htmlBuilder.Append(fieldHtml);
-
-                    // Create the entity for saving fields in the database
-                    FormFieldsModel newField = new()
-                    {
-                        IdForm = idGuid,
-                        Type = field.Type,
-                        Name = field.Name,
-                        Size = field is TextFieldRequestDTO textField ? textField.Size : null,
-                        Mask = field is TextFieldRequestDTO textFieldWithMask ? textFieldWithMask.Mask : null,
-                        Link = field.Link,
-                        Relation = field is SelectFieldRequestDTO selectField ? selectField.Relation : null,
-                        IsDeleted = false,
-                    };
-
-                    fieldsToInsert.Add(newField);
                 }
-            }
             }
 
             htmlBuilder.Append("</form>");
@@ -149,7 +147,7 @@ namespace ApiElecateProspectsForm.Controllers
             try
             {
                 DbSecretsModel? dbSecret = await _secretsDbRepository.GetDbSecretsFieldsAsync(idGuid);
-                
+
                 if (dbSecret == null)
                 {
                     return _responseHandler.HandleError(

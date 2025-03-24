@@ -14,6 +14,4 @@ namespace ApiElecateProspectsForm.Context
                 .HasNoKey();
         }
     }
-
-
 }
