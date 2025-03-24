@@ -24,14 +24,13 @@ namespace ApiElecateProspectsForm.Middlewares
 
         private static Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
-            var response = new
-            {
-                message = "An unexpected error occurred. Please try again later.",
-                error = exception.Message, // Puedes omitir esto en producción para no exponer detalles
-                statusCode = (int)HttpStatusCode.InternalServerError
-            };
+            (string message, string error, int statusCode) response = (
+                message: "An unexpected error occurred. Please try again later.",
+                error: exception.Message, // It can be omitted in production to avoid exposing details
+                statusCode: (int)HttpStatusCode.InternalServerError
+            );
 
-            var jsonResponse = JsonSerializer.Serialize(response);
+            string jsonResponse = JsonSerializer.Serialize(response);
             context.Response.ContentType = "application/json";
             context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
 

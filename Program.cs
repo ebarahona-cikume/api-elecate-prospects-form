@@ -5,7 +5,6 @@ using ApiElecateProspectsForm.Context;
 using ApiElecateProspectsForm.Utils;
 using ApiElecateProspectsForm.Interfaces.Repositories;
 using ApiElecateProspectsForm.Interfaces;
-using ApiElecateProspectsForm.DTOs;
 using ApiElecateProspectsForm.Services.DbContextFactory;
 using ApiElecateProspectsForm.Middlewares;
 
@@ -66,7 +65,7 @@ builder.Services.AddCors(options =>
         });
 });
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 
 app.UseMiddleware<ExceptionMiddleware>();
 
